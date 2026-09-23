@@ -3,45 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>乘客網上購票系統</title>
-    <!-- 引入 QR Code 生成庫 -->
+    <title>乘客智能購票</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e9ecef; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; text-align: center; }
-        .schedule-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; background-color: #f8f9fa; }
-        .schedule-card p { margin: 5px 0; }
-        button { background-color: #28a745; color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 5px; font-size: 16px; margin-top: 10px; }
-        button:hover { background-color: #218838; }
-        #ticketArea { display: none; text-align: center; margin-top: 20px; padding: 20px; border: 2px solid #28a745; border-radius: 10px; }
-        #qrcode { display: flex; justify-content: center; margin: 20px 0; }
+        :root { --bg: #f8fafc; --primary: #0284c7; --card: #ffffff; --text: #334155; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 480px; background: var(--card); min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.05); padding: 20px; box-sizing: border-box; }
+        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: var(--primary); font-size: 24px; }
+        
+        .search-box { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 13px; font-weight: bold; color: #64748b; margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; }
+        .search-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
+        .ticket-type-toggle { display: flex; gap: 10px; margin-bottom: 15px; }
+        .ticket-type-toggle label { flex: 1; text-align: center; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .ticket-type-toggle input[type="radio"] { display: none; }
+        .ticket-type-toggle input[type="radio"]:checked + label { border-color: var(--primary); background: #e0f2fe; color: var(--primary); }
+
+        .schedule-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .time-loc { display: flex; flex-direction: column; }
+        .time { font-size: 18px; font-weight: bold; color: var(--primary); }
+        .price { font-size: 18px; font-weight: bold; color: #059669; }
+        .buy-btn { background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        #ticketArea { display: none; text-align: center; animation: fadeIn 0.5s; }
+        #qrcode { background: white; padding: 20px; border-radius: 16px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>網上購票系統</h1>
-        
-        <div id="scheduleList">
-            <p style="text-align:center;">正在連線至 Firebase 載入最新班次...</p>
+    <div class="app-container">
+        <div class="header">
+            <h1>🚍 智能車票預訂</h1>
         </div>
 
+        <!-- 搜尋介面 -->
+        <div id="searchView">
+            <div class="search-box">
+                <div class="input-group" style="display: flex; gap: 10px;">
+                    <div style="flex:1;">
+                        <label>上車地點</label>
+                        <input type="text" id="searchOrigin" placeholder="如: 旺角">
+                    </div>
+                    <div style="flex:1;">
+                        <label>下車地點</label>
+                        <input type="text" id="searchDest" placeholder="如: 尖沙咀">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>出發日期</label>
+                    <input type="date" id="searchDate">
+                </div>
+                
+                <label style="font-size: 13px; font-weight: bold; color: #64748b; display:block; margin-bottom: 5px;">車票類型 (來回票可掃描 2 次)</label>
+                <div class="ticket-type-toggle">
+                    <input type="radio" name="ticketType" id="typeOneWay" value="oneway" checked>
+                    <label for="typeOneWay">單程</label>
+                    
+                    <input type="radio" name="ticketType" id="typeRound" value="round">
+                    <label for="typeRound">來回</label>
+                </div>
+
+                <button class="search-btn" onclick="window.searchSchedules()">搜尋班次</button>
+            </div>
+
+            <div id="resultsArea">
+                <p style="text-align:center; color:#94a3b8; font-size:14px;">請輸入條件並搜尋...</p>
+            </div>
+        </div>
+
+        <!-- 車票顯示介面 -->
         <div id="ticketArea">
-            <h2>電子車票已生成</h2>
-            <p>請在上車時出示下方二維碼供掃描驗證：</p>
+            <h2 style="color:var(--primary); margin-bottom:5px;">電子車票已發出</h2>
+            <p id="ticketSubtitle" style="color:#64748b; font-size:14px; margin-top:0;">請於上車時出示掃描</p>
+            
             <div id="qrcode"></div>
-            <p id="ticketDetails" style="font-weight: bold; white-space: pre-line;"></p>
-            <button onclick="location.reload()" style="background-color: #6c757d;">返回班次列表</button>
+            
+            <div style="background:#f1f5f9; padding:15px; border-radius:12px; text-align:left; font-size:15px; line-height:1.6; margin-bottom:20px;">
+                <div id="ticketDetails"></div>
+            </div>
+
+            <button class="search-btn" style="background:#64748b;" onclick="location.reload()">返回首頁</button>
         </div>
     </div>
 
-    <!-- 將 type 設為 module 以支援 import 語法 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 你的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyCq_8FSy5JU9-ETd1F3whQHwXC_fY1uqdo",
             authDomain: "admin-bus2026.firebaseapp.com",
@@ -49,73 +101,93 @@
             projectId: "admin-bus2026",
             storageBucket: "admin-bus2026.firebasestorage.app",
             messagingSenderId: "465878874061",
-            appId: "1:465878874061:web:f967bd130caf9546abb684",
-            measurementId: "G-S9FFQH5DPK"
+            appId: "1:465878874061:web:f967bd130caf9546abb684"
         };
-
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 即時監聽 Firebase 的班次
-        const schedulesRef = ref(db, 'schedules');
-        onValue(schedulesRef, (snapshot) => {
-            const scheduleList = document.getElementById('scheduleList');
-            scheduleList.innerHTML = "<h2>可預訂班次</h2>";
+        // 預設填入今天日期
+        document.getElementById('searchDate').valueAsDate = new Date();
+
+        window.searchSchedules = function() {
+            const origin = document.getElementById('searchOrigin').value.trim();
+            const dest = document.getElementById('searchDest').value.trim();
+            const date = document.getElementById('searchDate').value;
+            const resultsArea = document.getElementById('resultsArea');
             
-            if (!snapshot.exists()) {
-                scheduleList.innerHTML += "<p style='text-align:center;'>目前沒有可購買的班次。</p>";
-                return;
-            }
+            if(!origin || !dest || !date) { alert("請填寫上車、下車地點及日期"); return; }
+            resultsArea.innerHTML = "<p style='text-align:center;'>搜尋中...</p>";
 
-            snapshot.forEach((childSnapshot) => {
-                const sch = childSnapshot.val();
-                const routeInfo = `${sch.origin} ➔ ${sch.destination}`;
-                const timeInfo = `${sch.date} ${sch.time}`;
-
-                let card = document.createElement('div');
-                card.className = 'schedule-card';
-                card.innerHTML = `
-                    <p><strong>路線：</strong> ${routeInfo}</p>
-                    <p><strong>時間：</strong> ${timeInfo}</p>
-                    <p><strong>價格：</strong> $${sch.price}</p>
-                    <button onclick="window.buyTicket('${sch.id}', '${routeInfo}', '${timeInfo}')">購買此車票</button>
-                `;
-                scheduleList.appendChild(card);
+            get(ref(db, 'schedules')).then((snapshot) => {
+                resultsArea.innerHTML = "";
+                let found = false;
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        const sch = child.val();
+                        // 進行條件過濾 (支援關鍵字包含)
+                        if (sch.date === date && sch.origin.includes(origin) && sch.destination.includes(dest)) {
+                            found = true;
+                            renderCard(sch);
+                        }
+                    });
+                }
+                if (!found) resultsArea.innerHTML = "<p style='text-align:center; color:#ef4444;'>找不到符合條件的班次</p>";
             });
-        });
+        };
 
-        // 購買車票並寫入 Firebase
-        window.buyTicket = function(scheduleId, routeInfo, timeInfo) {
+        function renderCard(sch) {
+            const type = document.querySelector('input[name="ticketType"]:checked').value;
+            const isRound = type === 'round';
+            const finalPrice = isRound ? sch.price * 2 : sch.price; // 來回雙倍價
+            
+            const div = document.createElement('div');
+            div.className = 'schedule-card';
+            div.innerHTML = `
+                <div class="time-loc">
+                    <span class="time">${sch.time}</span>
+                    <span style="font-size:14px; color:#64748b;">${sch.origin} ➔ ${sch.destination}</span>
+                    <span style="font-size:12px; color:#0284c7; font-weight:bold;">${isRound ? '🔄 來回票' : '➡️ 單程票'}</span>
+                </div>
+                <div style="text-align:right;">
+                    <div class="price">$${finalPrice}</div>
+                    <button class="buy-btn" onclick="window.buyTicket('${sch.id}', '${sch.origin}', '${sch.destination}', '${sch.time}', '${type}')">購買</button>
+                </div>
+            `;
+            document.getElementById('resultsArea').appendChild(div);
+        }
+
+        window.buyTicket = function(schId, origin, dest, time, type) {
+            const isRound = type === 'round';
             const ticketId = 'TKT-' + Math.floor(100000 + Math.random() * 900000);
             
             const ticketData = {
                 id: ticketId,
-                scheduleId: scheduleId,
-                routeInfo: routeInfo + ' (' + timeInfo + ')',
-                used: false,
+                scheduleId: schId,
+                type: type,
+                scansLeft: isRound ? 2 : 1, // 單程掃1次，來回可掃2次
                 purchasedAt: Date.now()
             };
 
-            const newTicketRef = ref(db, 'tickets/' + ticketId);
-            set(newTicketRef, ticketData).then(() => {
-                document.getElementById('scheduleList').style.display = 'none';
+            set(ref(db, 'tickets/' + ticketId), ticketData).then(() => {
+                document.getElementById('searchView').style.display = 'none';
                 document.getElementById('ticketArea').style.display = 'block';
-                document.getElementById('ticketDetails').innerText = `路線: ${routeInfo}\n時間: ${timeInfo}\n票號: ${ticketId}`;
+                
+                const typeText = isRound ? "🔄 來回票 (可掃描上車 2 次)" : "➡️ 單程票 (可掃描上車 1 次)";
+                document.getElementById('ticketDetails').innerHTML = `
+                    <strong>車票號碼：</strong>${ticketId}<br>
+                    <strong>車票種類：</strong>${typeText}<br>
+                    <strong>去程路線：</strong>${origin} ➔ ${dest}<br>
+                    <strong>去程時間：</strong>${time}
+                `;
 
                 document.getElementById('qrcode').innerHTML = "";
                 new QRCode(document.getElementById("qrcode"), {
                     text: ticketId,
-                    width: 200,
-                    height: 200,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
+                    width: 220, height: 220,
+                    colorDark : "#0f172a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
                 });
-            }).catch(error => {
-                alert("購票失敗，請重試: " + error.message);
-            });
-        }
+            }).catch(e => alert("購票錯誤：" + e.message));
+        };
     </script>
 </body>
 </html>
