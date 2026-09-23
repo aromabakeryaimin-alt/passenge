@@ -3,279 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能巴士客運</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <title>車票預訂與電子車票</title>
+    <!-- Google Fonts, Font Awesome & QRCode Generator -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --primary: #38bfa1;
-            --bg: #f4f6f8;
-            --card: #ffffff;
-            --text-main: #333333;
-            --text-muted: #999999;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
         }
+
+        * { box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text-main); padding: 20px 15px; display: flex; justify-content: center; }
+
+        .container { width: 100%; max-width: 480px; margin: 0 auto; }
         
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
+        /* 標頭與卡片風格 */
+        .app-header { text-align: center; margin-bottom: 20px; }
+        .app-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-main); }
+        .app-header p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+        .card {
+            background: var(--surface); border-radius: 20px; padding: 25px;
+            border: 1px solid var(--border); box-shadow: var(--card-shadow);
+            margin-bottom: 20px; transition: all 0.3s ease;
         }
 
-        .app-container {
-            width: 100%;
-            max-width: 480px;
-            background: var(--bg);
-            min-height: 100vh;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
-            position: relative;
-            padding-bottom: 70px;
+        .step-title {
+            font-size: 15px; font-weight: 700; margin-bottom: 15px; display: flex;
+            align-items: center; gap: 8px; color: var(--primary);
         }
 
-        /* Toast 提示框樣式 */
-        .toast-msg {
-            position: fixed; top: -50px; left: 50%; transform: translateX(-50%);
-            background: rgba(50, 50, 50, 0.9); color: white; padding: 12px 24px; border-radius: 25px;
-            font-size: 14px; z-index: 9999; transition: top 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            white-space: nowrap; pointer-events: none;
-        }
-        .toast-msg.show { top: 20px; }
-
-        .top-banner {
-            background: linear-gradient(135deg, #38bfa1, #2cb092);
-            height: 160px;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-            padding: 20px;
-            color: white;
-            box-sizing: border-box;
-            text-align: center;
-        }
-        .top-banner h1 { margin: 10px 0 0 0; font-size: 20px; font-weight: normal; }
-
-        .card-panel {
-            background: var(--card);
-            margin: -70px 15px 15px 15px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            padding: 20px;
-            position: relative;
-        }
-
-        /* 登入/註冊區塊 */
-        .auth-container { padding: 20px; }
-        .auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
-        .auth-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: var(--text-muted); font-weight: bold; }
-        .auth-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
-        .form-group input, .form-group select { 
-            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box; 
+        select, input {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+            font-size: 14px; outline: none; background: #fff; transition: 0.2s; color: var(--text-main);
         }
+        select:disabled { background: #f1f5f9; cursor: not-allowed; opacity: 0.7; }
+        select:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+        /* 車票類型選擇按鈕 */
+        .trip-type-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .type-btn {
+            padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff;
+            font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; transition: 0.2s; color: var(--text-muted);
+        }
+        .type-btn.active { background: #e0e7ff; border-color: var(--primary); color: var(--primary); }
+
+        /* 價格結算區 */
+        .price-summary {
+            background: #f8fafc; padding: 15px; border-radius: 12px; display: flex;
+            justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 20px;
+            border: 1px dashed var(--border);
+        }
+        .price-label { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+        .price-amount { font-size: 22px; font-weight: 700; color: var(--primary); }
+
+        .btn-submit {
+            width: 100%; background: var(--primary); color: white; border: none; padding: 14px;
+            border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        }
+        .btn-submit:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        /* 完成訂票的車票展示卡片 */
+        .ticket-card { display: none; text-align: center; position: relative; overflow: hidden; }
+        .ticket-header { background: var(--primary); color: white; padding: 20px; margin: -25px -25px 20px -25px; }
+        .ticket-header h2 { margin: 0; font-size: 18px; }
+        .ticket-header p { margin: 5px 0 0 0; font-size: 12px; opacity: 0.8; }
+
+        .qr-container { display: flex; justify-content: center; margin: 20px 0; }
+        .qr-container div { padding: 10px; background: white; border-radius: 12px; border: 1px solid var(--border); }
         
-        /* 購票區塊 */
-        .trip-type-switch { display: flex; justify-content: center; background: #f1f5f9; border-radius: 25px; padding: 4px; margin: 0 auto 20px auto; width: 200px; }
-        .trip-type-btn { flex: 1; text-align: center; padding: 8px 0; border-radius: 20px; font-size: 14px; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
-        .trip-type-btn.active { background: var(--primary); color: white; font-weight: bold; box-shadow: 0 2px 5px rgba(56, 191, 161, 0.3); }
+        .ticket-info-grid { text-align: left; background: #f8fafc; padding: 15px; border-radius: 12px; font-size: 13px; margin-bottom: 20px; }
+        .ticket-info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .ticket-info-row:last-child { margin-bottom: 0; }
+        .info-title { color: var(--text-muted); }
+        .info-val { font-weight: 600; color: var(--text-main); }
 
-        .route-display {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-        .route-display-item { display: flex; flex-direction: column; align-items: center; }
-        .route-display-item span.label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
-        .route-display-item span.city { font-size: 22px; font-weight: bold; color: var(--primary); }
-        .route-arrow { margin: 15px 0; color: #cbd5e1; font-size: 20px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .badge-success { background: #dcfce7; color: #15803d; }
 
-        .date-selector { margin-bottom: 20px; }
-        .date-selector input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--text-main); background: #f8fafc; text-align: center; }
-
-        .primary-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(56, 191, 161, 0.3); }
-        .secondary-btn { width: 100%; background: white; color: var(--text-main); border: 1px solid #ddd; padding: 15px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-
-        /* 結果與車票 */
-        #resultsArea { padding: 0 15px; margin-top: 20px; }
-        .schedule-card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .time-loc .time { font-size: 20px; font-weight: bold; color: var(--text-main); display: block; }
-        .time-loc .route { font-size: 13px; color: var(--text-muted); margin-top: 4px; display: block; }
-        .price-box { text-align: right; }
-        .price-box .price { font-size: 20px; font-weight: bold; color: #ff5722; margin-bottom: 5px; }
-        .buy-btn { background: #ff5722; color: white; border: none; padding: 6px 16px; border-radius: 15px; font-size: 13px; cursor: pointer; }
-
-        #ticketArea { text-align: center; padding: 20px; animation: fadeIn 0.4s; }
-        .ticket-box { background: white; border-radius: 16px; padding: 30px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: -60px; position: relative; }
-        #qrcode { display: flex; justify-content: center; margin: 20px 0; }
-        .ticket-info { text-align: left; background: #f8fafc; padding: 15px; border-radius: 10px; font-size: 14px; line-height: 1.8; color: #475569; }
-
-        /* 用戶中心 */
-        .profile-header { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #eee; }
-        .avatar { width: 60px; height: 60px; background: #e2e8f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #94a3b8; margin-right: 15px; }
-        .profile-info h2 { margin: 0; font-size: 18px; }
-        .profile-info p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted); }
-
-        /* 導航 */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #e2e8f0; z-index: 10; max-width: 480px; margin: 0 auto; }
-        .nav-item { text-align: center; font-size: 11px; color: #94a3b8; text-decoration: none; cursor: pointer; width: 33%; }
-        .nav-item.active { color: var(--primary); }
-        .nav-item i { font-size: 20px; display: block; margin-bottom: 2px; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* 視圖控制 */
-        .view-section { display: none; }
-        .view-section.active { display: block; }
+        .loading-text { text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px 0; }
     </style>
 </head>
 <body>
-    <!-- Toast 提示組件 -->
-    <div id="toastBox" class="toast-msg"></div>
 
-    <div class="app-container">
-        <!-- 頂部背景 (公用) -->
-        <div class="top-banner" id="mainHeader">
-            <h1 id="headerTitle">🚍 智能巴士客運</h1>
+    <div class="container">
+        <!-- 頂部頁頭 -->
+        <div class="app-header">
+            <h1>🚌 智能巴士直達車票</h1>
+            <p>實時選擇 Google Excel 班次與快速購票</p>
         </div>
 
-        <!-- ================= 視圖 1: 登入與註冊 ================= -->
-        <div id="authView" class="view-section">
-            <div class="card-panel auth-container">
-                <div class="auth-tabs">
-                    <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登入</div>
-                    <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">註冊</div>
-                </div>
-
-                <!-- 登入表單 -->
-                <div id="loginForm">
-                    <div class="form-group">
-                        <label>電話號碼</label>
-                        <input type="tel" id="loginPhone" placeholder="請輸入註冊手機號碼">
-                    </div>
-                    <div class="form-group">
-                        <label>密碼</label>
-                        <input type="password" id="loginPwd" placeholder="請輸入6位字母或數字">
-                    </div>
-                    <button class="primary-btn" onclick="handleLogin()">登入</button>
-                </div>
-
-                <!-- 註冊表單 -->
-                <div id="registerForm" style="display:none;">
-                    <div class="form-group">
-                        <label>電話號碼</label>
-                        <input type="tel" id="regPhone" placeholder="例如: 98765432">
-                    </div>
-                    <!-- 修正：將旅遊證件名稱改為真實姓名 -->
-                    <div class="form-group">
-                        <label>真實姓名 (需與證件相同)</label>
-                        <input type="text" id="regDocName" placeholder="如: 陳大文 / Chan Tai Man">
-                    </div>
-                    <div class="form-group">
-                        <label>出生日期</label>
-                        <input type="date" id="regDob">
-                    </div>
-                    <div class="form-group">
-                        <label>性別</label>
-                        <select id="regGender">
-                            <option value="">請選擇</option>
-                            <option value="M">男</option>
-                            <option value="F">女</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>設定密碼 (必須剛好 6 個字，僅限英文字母或數字)</label>
-                        <input type="password" id="regPwd" placeholder="例如: AB12cd" maxlength="6">
-                        <small style="color:red; display:none;" id="pwdError">密碼格式錯誤</small>
-                    </div>
-                    <button class="primary-btn" onclick="handleRegister()">註冊並登入</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= 視圖 2: 購票首頁 ================= -->
-        <div id="bookingView" class="view-section">
-            <div class="card-panel">
-                <input type="hidden" id="ticketTypeValue" value="oneway">
-
-                <div class="trip-type-switch">
-                    <div class="trip-type-btn active" id="btnOneWay" onclick="setTripType('oneway')">單程</div>
-                    <div class="trip-type-btn" id="btnRound" onclick="setTripType('round')">往返 <span style="font-size:10px; background:#ff4d4f; color:white; padding:2px 4px; border-radius:8px;">惠</span></div>
-                </div>
-
-                <!-- 系統固定顯示，不可手動修改 -->
-                <div class="route-display">
-                    <div class="route-display-item">
-                        <span class="label">系統分配出發地</span>
-                        <span class="city" id="displayOrigin">旺角</span>
-                    </div>
-                    <div class="route-arrow">
-                        <i class="fas fa-long-arrow-alt-down"></i>
-                    </div>
-                    <div class="route-display-item">
-                        <span class="label">系統分配目的地</span>
-                        <!-- 修正：與 JS 設定的終點統一為尖沙咀 -->
-                        <span class="city" id="displayDest">尖沙咀</span>
-                    </div>
-                </div>
-
-                <div class="date-selector">
-                    <input type="date" id="searchDate">
-                </div>
-
-                <button class="primary-btn" onclick="window.searchSchedules()">搜索此路線班次</button>
+        <!-- 1. 購票表單卡片 -->
+        <div class="card" id="bookingCard">
+            <div class="step-title">
+                <i class="fas fa-route"></i> 選擇路線與班次
             </div>
 
-            <div id="resultsArea"></div>
+            <!-- 出發地下拉選單 -->
+            <div class="form-group">
+                <label>出發地點</label>
+                <select id="selectOrigin">
+                    <option value="">載入班次中...</option>
+                </select>
+            </div>
+
+            <!-- 目的地下拉選單 -->
+            <div class="form-group">
+                <label>目的地</label>
+                <select id="selectDest" disabled>
+                    <option value="">請先選擇出發地點</option>
+                </select>
+            </div>
+
+            <!-- 出發日期下拉選單 -->
+            <div class="form-group">
+                <label>出發日期</label>
+                <select id="selectDate" disabled>
+                    <option value="">請先選擇目的地</option>
+                </select>
+            </div>
+
+            <!-- 出發時間下拉選單 -->
+            <div class="form-group">
+                <label>開車時間</label>
+                <select id="selectTime" disabled>
+                    <option value="">請先選擇日期</option>
+                </select>
+            </div>
+
+            <div class="step-title" style="margin-top: 25px;">
+                <i class="fas fa-ticket-alt"></i> 車票種類
+            </div>
+
+            <div class="trip-type-selector">
+                <div class="type-btn active" id="btnSingle" onclick="setTripType('single')">單程票</div>
+                <div class="type-btn" id="btnRound" onclick="setTripType('round')">來回票 (掃描 2 次)</div>
+            </div>
+
+            <div class="step-title" style="margin-top: 25px;">
+                <i class="fas fa-user"></i> 乘客資料
+            </div>
+
+            <div class="form-group">
+                <label>乘客姓名</label>
+                <input type="text" id="passengerName" placeholder="例如：張小明">
+            </div>
+            <div class="form-group">
+                <label>聯絡電話</label>
+                <input type="tel" id="passengerPhone" placeholder="例如：91234567">
+            </div>
+
+            <!-- 價格試算區 -->
+            <div class="price-summary">
+                <span class="price-label">應付總額</span>
+                <span class="price-amount" id="totalPriceDisplay">HK$ 0</span>
+            </div>
+
+            <button class="btn-submit" onclick="submitBooking()">確認付款並生成電子車票</button>
         </div>
 
-        <!-- ================= 視圖 3: 車票詳情 ================= -->
-        <div id="ticketView" class="view-section">
-            <div class="ticket-box">
-                <h2 style="color:var(--primary); margin-top:0;">購票成功</h2>
-                <p style="color:var(--text-muted); font-size:13px;">請於上車時向司機出示此二維碼</p>
+        <!-- 2. 完成後的電子車票展示卡片 -->
+        <div class="card ticket-card" id="ticketCard">
+            <div class="ticket-header">
+                <h2>車票購買成功</h2>
+                <p>請在乘車時出示下方二維碼供員工掃描</p>
+            </div>
+
+            <span class="badge badge-success"><i class="fas fa-check-circle"></i> 車票有效</span>
+
+            <div class="qr-container">
                 <div id="qrcode"></div>
-                <div class="ticket-info" id="ticketDetails"></div>
-                <button class="secondary-btn" onclick="switchView('booking')">返回購票</button>
             </div>
-        </div>
 
-        <!-- ================= 視圖 4: 用戶中心 (我的) ================= -->
-        <div id="profileView" class="view-section">
-            <div class="card-panel" style="padding: 0; overflow: hidden;">
-                <div class="profile-header">
-                    <div class="avatar"><i class="fas fa-user"></i></div>
-                    <div class="profile-info">
-                        <h2 id="profilePhone">未登入</h2>
-                        <p id="profileDoc">請先登入或註冊</p>
-                    </div>
+            <div class="ticket-info-grid">
+                <div class="ticket-info-row">
+                    <span class="info-title">車票編號</span>
+                    <span class="info-val" id="tTicketId">TKT-000000</span>
                 </div>
-                <div style="padding: 20px;">
-                    <div style="margin-bottom:20px; font-size:14px; color:#666;">
-                        <p><strong>出生日期：</strong> <span id="profileDob">-</span></p>
-                        <p><strong>性別：</strong> <span id="profileGender">-</span></p>
-                    </div>
-                    <button class="secondary-btn" style="color:#ef4444; border-color:#ef4444;" onclick="handleLogout()">登出帳號</button>
+                <div class="ticket-info-row">
+                    <span class="info-title">乘客</span>
+                    <span class="info-val" id="tName">-</span>
+                </div>
+                <div class="ticket-info-row">
+                    <span class="info-title">行程</span>
+                    <span class="info-val" id="tRoute">-</span>
+                </div>
+                <div class="ticket-info-row">
+                    <span class="info-title">時間</span>
+                    <span class="info-val" id="tTime">-</span>
+                </div>
+                <div class="ticket-info-row">
+                    <span class="info-title">車票類型</span>
+                    <span class="info-val" id="tType">單程票</span>
+                </div>
+                <div class="ticket-info-row">
+                    <span class="info-title">剩餘可掃描次數</span>
+                    <span class="info-val" id="tScansLeft" style="color: var(--primary);">1 次</span>
                 </div>
             </div>
-        </div>
 
-        <!-- 底部導航欄 -->
-        <div class="bottom-nav" id="bottomNav" style="display:none;">
-            <div class="nav-item" id="navBooking" onclick="switchView('booking')"><i class="fas fa-bus"></i>購票</div>
-            <div class="nav-item" id="navProfile" onclick="switchView('profile')"><i class="fas fa-user"></i>我的</div>
+            <button class="btn-submit" style="background:#0f172a;" onclick="resetBooking()">返回繼續購票</button>
         </div>
     </div>
 
+    <!-- Firebase 邏輯腳本 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // 與後台共用之 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyCq_8FSy5JU9-ETd1F3whQHwXC_fY1uqdo",
             authDomain: "admin-bus2026.firebaseapp.com",
@@ -285,251 +234,197 @@
             messagingSenderId: "465878874061",
             appId: "1:465878874061:web:f967bd130caf9546abb684"
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 系統分配的地點
-        const SYSTEM_ORIGIN = "旺角"; 
-        const SYSTEM_DEST = "尖沙咀";
+        let allSchedules = [];
+        let currentTripType = 'single'; // 'single' 或 'round'
+        let currentUnitPrice = 0;
 
-        // Toast 提示函數
-        function showToast(message) {
-            const toast = document.getElementById('toastBox');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+        // 頁面加載時拉取 Google Excel 產生的動態班次
+        window.addEventListener('DOMContentLoaded', fetchSchedulesFromDB);
+
+        function fetchSchedulesFromDB() {
+            get(ref(db, 'schedules')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    allSchedules = Object.values(snapshot.val());
+                    populateOrigins();
+                } else {
+                    document.getElementById('selectOrigin').innerHTML = '<option value="">目前暫無可用班次</option>';
+                }
+            }).catch(err => {
+                alert("無法連線至班次資料庫，請重新重載頁面。");
+            });
         }
 
-        // 啟動初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('searchDate').valueAsDate = new Date();
-            document.getElementById('displayOrigin').textContent = SYSTEM_ORIGIN;
-            document.getElementById('displayDest').textContent = SYSTEM_DEST;
-            checkLoginStatus();
+        // 1. 動態填充「出發地」
+        function populateOrigins() {
+            const origins = [...new Set(allSchedules.map(item => item.origin))];
+            const selectOrigin = document.getElementById('selectOrigin');
+            selectOrigin.innerHTML = '<option value="">-- 請選擇出發地點 --</option>';
+            origins.forEach(orig => {
+                selectOrigin.innerHTML += `<option value="${orig}">${orig}</option>`;
+            });
+        }
+
+        // 2. 監聽出發地變更 -> 填充「目的地」
+        document.getElementById('selectOrigin').addEventListener('change', (e) => {
+            const chosenOrigin = e.target.value;
+            const selectDest = document.getElementById('selectDest');
+            const selectDate = document.getElementById('selectDate');
+            const selectTime = document.getElementById('selectTime');
+
+            selectDest.innerHTML = '<option value="">-- 請選擇目的地 --</option>';
+            selectDate.innerHTML = '<option value="">請先選擇目的地</option>';
+            selectTime.innerHTML = '<option value="">請先選擇日期</option>';
+            selectDate.disabled = true;
+            selectTime.disabled = true;
+
+            if (!chosenOrigin) { selectDest.disabled = true; updateTotalPrice(); return; }
+
+            const dests = [...new Set(allSchedules.filter(s => s.origin === chosenOrigin).map(s => s.destination))];
+            dests.forEach(d => {
+                selectDest.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+            selectDest.disabled = false;
+            updateTotalPrice();
         });
 
-        function isValidPassword(pwd) {
-            const regex = /^[A-Za-z0-9]{6}$/;
-            return regex.test(pwd);
-        }
+        // 3. 監聽目的地變更 -> 填充「日期」
+        document.getElementById('selectDest').addEventListener('change', (e) => {
+            const chosenOrigin = document.getElementById('selectOrigin').value;
+            const chosenDest = e.target.value;
+            const selectDate = document.getElementById('selectDate');
+            const selectTime = document.getElementById('selectTime');
 
-        // ================= 帳號與視圖邏輯 =================
-        window.switchAuthTab = function(tab) {
-            if(tab === 'login') {
-                document.getElementById('tabLogin').classList.add('active');
-                document.getElementById('tabRegister').classList.remove('active');
-                document.getElementById('loginForm').style.display = 'block';
-                document.getElementById('registerForm').style.display = 'none';
-            } else {
-                document.getElementById('tabRegister').classList.add('active');
-                document.getElementById('tabLogin').classList.remove('active');
-                document.getElementById('registerForm').style.display = 'block';
-                document.getElementById('loginForm').style.display = 'none';
-            }
-        }
+            selectDate.innerHTML = '<option value="">-- 請選擇日期 --</option>';
+            selectTime.innerHTML = '<option value="">請先選擇日期</option>';
+            selectTime.disabled = true;
 
-        window.switchView = function(viewName) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            if(viewName === 'auth') {
-                document.getElementById('authView').classList.add('active');
-                document.getElementById('headerTitle').textContent = "用戶登入/註冊";
-                document.getElementById('bottomNav').style.display = 'none';
-            } else if(viewName === 'booking') {
-                document.getElementById('bookingView').classList.add('active');
-                document.getElementById('navBooking').classList.add('active');
-                document.getElementById('headerTitle').textContent = "🚍 智能巴士客運";
-                document.getElementById('bottomNav').style.display = 'flex';
-                document.getElementById('resultsArea').innerHTML = '';
-            } else if(viewName === 'profile') {
-                document.getElementById('profileView').classList.add('active');
-                document.getElementById('navProfile').classList.add('active');
-                document.getElementById('headerTitle').textContent = "會員中心";
-                document.getElementById('bottomNav').style.display = 'flex';
-                loadProfileData();
-            } else if(viewName === 'ticket') {
-                document.getElementById('ticketView').classList.add('active');
-                document.getElementById('headerTitle').textContent = "電子車票";
-                document.getElementById('bottomNav').style.display = 'none';
-            }
-        }
+            if (!chosenDest) { selectDate.disabled = true; updateTotalPrice(); return; }
 
-        function checkLoginStatus() {
-            const currentUser = localStorage.getItem('busCurrentUser');
-            if (currentUser) {
-                switchView('booking');
-            } else {
-                switchView('auth');
-            }
-        }
-
-        // 註冊
-        window.handleRegister = function() {
-            const phone = document.getElementById('regPhone').value.trim();
-            const docName = document.getElementById('regDocName').value.trim();
-            const dob = document.getElementById('regDob').value;
-            const gender = document.getElementById('regGender').value;
-            const pwd = document.getElementById('regPwd').value;
-            const errorLabel = document.getElementById('pwdError');
-
-            if(!phone || !docName || !dob || !gender || !pwd) {
-                showToast("請填寫所有註冊資料"); return;
-            }
-
-            if(!isValidPassword(pwd)) {
-                errorLabel.style.display = 'block';
-                return;
-            }
-            errorLabel.style.display = 'none';
-
-            const userData = { phone, docName, dob, gender, pwd };
-            set(ref(db, 'users/' + phone), userData).then(() => {
-                showToast("註冊成功！");
-                // 安全優化：剔除密碼後存入 localStorage
-                const safeData = { phone, docName, dob, gender };
-                localStorage.setItem('busCurrentUser', JSON.stringify(safeData));
-                switchView('booking');
-            }).catch(e => showToast("註冊失敗: " + e.message));
-        };
-
-        // 登入
-        window.handleLogin = function() {
-            const phone = document.getElementById('loginPhone').value.trim();
-            const pwd = document.getElementById('loginPwd').value;
-
-            if(!phone || !pwd) { showToast("請輸入電話和密碼"); return; }
-
-            get(ref(db, 'users/' + phone)).then((snapshot) => {
-                if (snapshot.exists()) {
-                    const userData = snapshot.val();
-                    if (userData.pwd === pwd) {
-                        // 安全優化：剔除密碼後存入 localStorage
-                        const safeData = { phone: userData.phone, docName: userData.docName, dob: userData.dob, gender: userData.gender };
-                        localStorage.setItem('busCurrentUser', JSON.stringify(safeData));
-                        switchView('booking');
-                    } else {
-                        showToast("密碼錯誤");
-                    }
-                } else {
-                    showToast("找不到此電話號碼，請先註冊");
-                }
+            const dates = [...new Set(allSchedules.filter(s => s.origin === chosenOrigin && s.destination === chosenDest).map(s => s.date))];
+            dates.sort().forEach(dt => {
+                selectDate.innerHTML += `<option value="${dt}">${dt}</option>`;
             });
-        };
+            selectDate.disabled = false;
+            updateTotalPrice();
+        });
 
-        // 登出
-        window.handleLogout = function() {
-            localStorage.removeItem('busCurrentUser');
-            switchView('auth');
-            document.getElementById('loginPhone').value = '';
-            document.getElementById('loginPwd').value = '';
-        }
+        // 4. 監聽日期變更 -> 填充「開車時間」
+        document.getElementById('selectDate').addEventListener('change', (e) => {
+            const chosenOrigin = document.getElementById('selectOrigin').value;
+            const chosenDest = document.getElementById('selectDest').value;
+            const chosenDate = e.target.value;
+            const selectTime = document.getElementById('selectTime');
 
-        // 載入用戶資料
-        function loadProfileData() {
-            const userStr = localStorage.getItem('busCurrentUser');
-            if(userStr) {
-                const user = JSON.parse(userStr);
-                document.getElementById('profilePhone').textContent = "📞 " + user.phone;
-                document.getElementById('profileDoc').textContent = "姓名: " + user.docName;
-                document.getElementById('profileDob').textContent = user.dob;
-                document.getElementById('profileGender').textContent = (user.gender === 'M') ? "男" : "女";
-            }
-        }
+            selectTime.innerHTML = '<option value="">-- 請選擇時間 --</option>';
 
+            if (!chosenDate) { selectTime.disabled = true; updateTotalPrice(); return; }
 
-        // ================= 購票邏輯 =================
+            const availableTimes = allSchedules.filter(s => s.origin === chosenOrigin && s.destination === chosenDest && s.date === chosenDate);
+            availableTimes.forEach(t => {
+                selectTime.innerHTML += `<option value="${t.time}" data-price="${t.price}">${t.time} (HK$ ${t.price})</option>`;
+            });
+            selectTime.disabled = false;
+            updateTotalPrice();
+        });
+
+        // 5. 時間變更 -> 更新價格
+        document.getElementById('selectTime').addEventListener('change', () => {
+            const selectedOpt = document.getElementById('selectTime').selectedOptions[0];
+            currentUnitPrice = selectedOpt ? parseFloat(selectedOpt.dataset.price || 0) : 0;
+            updateTotalPrice();
+        });
+
+        // 6. 切換來回/單程票
         window.setTripType = function(type) {
-            document.getElementById('ticketTypeValue').value = type;
-            if(type === 'oneway') {
-                document.getElementById('btnOneWay').classList.add('active');
-                document.getElementById('btnRound').classList.remove('active');
-            } else {
-                document.getElementById('btnRound').classList.add('active');
-                document.getElementById('btnOneWay').classList.remove('active');
-            }
-        }
-
-        window.searchSchedules = function() {
-            const date = document.getElementById('searchDate').value;
-            const resultsArea = document.getElementById('resultsArea');
-            
-            if(!date) { showToast("請選擇日期"); return; }
-            resultsArea.innerHTML = "<p style='text-align:center; color:#999;'><i class='fas fa-spinner fa-spin'></i> 正在搜尋...</p>";
-
-            get(ref(db, 'schedules')).then((snapshot) => {
-                resultsArea.innerHTML = "";
-                let found = false;
-                if (snapshot.exists()) {
-                    snapshot.forEach((child) => {
-                        const sch = child.val();
-                        if (sch.date === date && sch.origin.includes(SYSTEM_ORIGIN) && sch.destination.includes(SYSTEM_DEST)) {
-                            found = true;
-                            renderCard(sch);
-                        }
-                    });
-                }
-                if (!found) resultsArea.innerHTML = "<p style='text-align:center; color:#ff5722;'>此路線該日暫無班次</p>";
-            });
+            currentTripType = type;
+            document.getElementById('btnSingle').classList.toggle('active', type === 'single');
+            document.getElementById('btnRound').classList.toggle('active', type === 'round');
+            updateTotalPrice();
         };
 
-        function renderCard(sch) {
-            const type = document.getElementById('ticketTypeValue').value;
-            const isRound = type === 'round';
-            const finalPrice = isRound ? sch.price * 2 : sch.price; 
-            
-            const div = document.createElement('div');
-            div.className = 'schedule-card';
-            div.innerHTML = `
-                <div class="time-loc">
-                    <span class="time">${sch.time}</span>
-                    <span class="route">${sch.origin} <i class="fas fa-arrow-right"></i> ${sch.destination}</span>
-                    <span style="font-size:11px; color:var(--primary); font-weight:bold;">
-                        ${isRound ? '🔄 往返' : '單程'}
-                    </span>
-                </div>
-                <div class="price-box">
-                    <div class="price">HK$${finalPrice}</div>
-                    <button class="buy-btn" onclick="window.buyTicket('${sch.id}', '${sch.origin}', '${sch.destination}', '${sch.time}', '${type}')">預訂</button>
-                </div>
-            `;
-            document.getElementById('resultsArea').appendChild(div);
+        function updateTotalPrice() {
+            let multiplier = currentTripType === 'round' ? 2 : 1;
+            let total = currentUnitPrice * multiplier;
+            document.getElementById('totalPriceDisplay').textContent = `HK$ ${total}`;
         }
 
-        window.buyTicket = function(schId, origin, dest, time, type) {
-            const isRound = type === 'round';
-            // 加入時間戳確保票號唯一
-            const ticketId = 'TKT-' + Date.now().toString().slice(-4) + Math.floor(10 + Math.random() * 90);
-            const user = JSON.parse(localStorage.getItem('busCurrentUser'));
-            
+        // 7. 提交預訂與生成 QR Code 車票
+        window.submitBooking = async function() {
+            const origin = document.getElementById('selectOrigin').value;
+            const dest = document.getElementById('selectDest').value;
+            const date = document.getElementById('selectDate').value;
+            const time = document.getElementById('selectTime').value;
+            const name = document.getElementById('passengerName').value.trim();
+            const phone = document.getElementById('passengerPhone').value.trim();
+
+            if (!origin || !dest || !date || !time) {
+                alert("請完整選擇路線地點、日期與班次時間！"); return;
+            }
+            if (!name || !phone) {
+                alert("請填寫乘客姓名與電話！"); return;
+            }
+
+            // 隨機生成 6 位數格式車票 ID
+            const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const ticketId = `TKT-${randomCode}`;
+            const scansAllowed = currentTripType === 'round' ? 2 : 1;
+
             const ticketData = {
-                id: ticketId,
-                scheduleId: schId,
-                type: type,
-                scansLeft: isRound ? 2 : 1,
-                purchasedAt: Date.now(),
-                ownerPhone: user.phone
+                ticketId: ticketId,
+                origin: origin,
+                destination: dest,
+                date: date,
+                time: time,
+                passengerName: name,
+                passengerPhone: phone,
+                type: currentTripType,
+                scansLeft: scansAllowed,
+                createdAt: Date.now()
             };
 
-            set(ref(db, 'tickets/' + ticketId), ticketData).then(() => {
-                switchView('ticket');
-                
-                const typeText = isRound ? "🔄 往返 (可掃 2 次)" : "單程 (可掃 1 次)";
-                document.getElementById('ticketDetails').innerHTML = `
-                    <strong>乘客電話：</strong>${user.phone}<br>
-                    <strong>訂單編號：</strong>${ticketId}<br>
-                    <strong>車票類型：</strong>${typeText}<br>
-                    <strong>乘車路線：</strong>${origin} <i class="fas fa-arrow-right"></i> ${dest}<br>
-                    <strong>發車時間：</strong>${time}
-                `;
+            // 寫入 Firebase 資料庫的 `tickets` 節點
+            try {
+                await set(ref(db, `tickets/${ticketId}`), ticketData);
+                renderTicketCard(ticketData);
+            } catch (err) {
+                alert("購票失敗，請重試：" + err.message);
+            }
+        };
 
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), {
-                    text: ticketId,
-                    width: 200, height: 200,
-                    colorDark : "#333333", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
-                });
-            }).catch(e => showToast("購票失敗：" + e.message));
+        // 8. 顯示車票與繪製 QR Code
+        function renderTicketCard(data) {
+            document.getElementById('bookingCard').style.display = 'none';
+            document.getElementById('ticketCard').style.display = 'block';
+
+            document.getElementById('tTicketId').textContent = data.ticketId;
+            document.getElementById('tName').textContent = `${data.passengerName} (${data.passengerPhone})`;
+            document.getElementById('tRoute').textContent = `${data.origin} ➔ ${data.destination}`;
+            document.getElementById('tTime').textContent = `${data.date} ${data.time}`;
+            document.getElementById('tType').textContent = data.type === 'round' ? '來回票' : '單程票';
+            document.getElementById('tScansLeft').textContent = `${data.scansLeft} 次`;
+
+            // 繪製 QR Code 供後台或 P001 員工掃描
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: data.ticketId,
+                width: 160,
+                height: 160,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        window.resetBooking = function() {
+            document.getElementById('ticketCard').style.display = 'none';
+            document.getElementById('bookingCard').style.display = 'block';
+            document.getElementById('passengerName').value = '';
+            document.getElementById('passengerPhone').value = '';
         };
     </script>
 </body>
