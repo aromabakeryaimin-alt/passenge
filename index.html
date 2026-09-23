@@ -35,6 +35,15 @@
             padding-bottom: 70px;
         }
 
+        /* Toast 提示框樣式 */
+        .toast-msg {
+            position: fixed; top: -50px; left: 50%; transform: translateX(-50%);
+            background: rgba(50, 50, 50, 0.9); color: white; padding: 12px 24px; border-radius: 25px;
+            font-size: 14px; z-index: 9999; transition: top 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            white-space: nowrap; pointer-events: none;
+        }
+        .toast-msg.show { top: 20px; }
+
         .top-banner {
             background: linear-gradient(135deg, #38bfa1, #2cb092);
             height: 160px;
@@ -126,6 +135,9 @@
     </style>
 </head>
 <body>
+    <!-- Toast 提示組件 -->
+    <div id="toastBox" class="toast-msg"></div>
+
     <div class="app-container">
         <!-- 頂部背景 (公用) -->
         <div class="top-banner" id="mainHeader">
@@ -159,9 +171,10 @@
                         <label>電話號碼</label>
                         <input type="tel" id="regPhone" placeholder="例如: 98765432">
                     </div>
+                    <!-- 修正：將旅遊證件名稱改為真實姓名 -->
                     <div class="form-group">
-                        <label>旅遊證件名稱</label>
-                        <input type="text" id="regDocName" placeholder="如: 香港身份證 / 護照">
+                        <label>真實姓名 (需與證件相同)</label>
+                        <input type="text" id="regDocName" placeholder="如: 陳大文 / Chan Tai Man">
                     </div>
                     <div class="form-group">
                         <label>出生日期</label>
@@ -199,14 +212,15 @@
                 <div class="route-display">
                     <div class="route-display-item">
                         <span class="label">系統分配出發地</span>
-                        <span class="city" id="displayOrigin">香港 (旺角)</span>
+                        <span class="city" id="displayOrigin">旺角</span>
                     </div>
                     <div class="route-arrow">
                         <i class="fas fa-long-arrow-alt-down"></i>
                     </div>
                     <div class="route-display-item">
                         <span class="label">系統分配目的地</span>
-                        <span class="city" id="displayDest">深圳灣口岸</span>
+                        <!-- 修正：與 JS 設定的終點統一為尖沙咀 -->
+                        <span class="city" id="displayDest">尖沙咀</span>
                     </div>
                 </div>
 
@@ -274,20 +288,26 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 系統分配的地點 (可以按需修改)
+        // 系統分配的地點
         const SYSTEM_ORIGIN = "旺角"; 
         const SYSTEM_DEST = "尖沙咀";
+
+        // Toast 提示函數
+        function showToast(message) {
+            const toast = document.getElementById('toastBox');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
 
         // 啟動初始化
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('searchDate').valueAsDate = new Date();
-            // 更新顯示的地點
             document.getElementById('displayOrigin').textContent = SYSTEM_ORIGIN;
             document.getElementById('displayDest').textContent = SYSTEM_DEST;
             checkLoginStatus();
         });
 
-        // 驗證密碼格式 (6位，僅限英文數字)
         function isValidPassword(pwd) {
             const regex = /^[A-Za-z0-9]{6}$/;
             return regex.test(pwd);
@@ -321,7 +341,7 @@
                 document.getElementById('navBooking').classList.add('active');
                 document.getElementById('headerTitle').textContent = "🚍 智能巴士客運";
                 document.getElementById('bottomNav').style.display = 'flex';
-                document.getElementById('resultsArea').innerHTML = ''; // 清空上次搜尋
+                document.getElementById('resultsArea').innerHTML = '';
             } else if(viewName === 'profile') {
                 document.getElementById('profileView').classList.add('active');
                 document.getElementById('navProfile').classList.add('active');
@@ -335,7 +355,6 @@
             }
         }
 
-        // 檢查是否已登入 (利用 localStorage 模擬)
         function checkLoginStatus() {
             const currentUser = localStorage.getItem('busCurrentUser');
             if (currentUser) {
@@ -355,7 +374,7 @@
             const errorLabel = document.getElementById('pwdError');
 
             if(!phone || !docName || !dob || !gender || !pwd) {
-                alert("請填寫所有註冊資料"); return;
+                showToast("請填寫所有註冊資料"); return;
             }
 
             if(!isValidPassword(pwd)) {
@@ -364,13 +383,14 @@
             }
             errorLabel.style.display = 'none';
 
-            // 存入 Firebase Users 節點
             const userData = { phone, docName, dob, gender, pwd };
             set(ref(db, 'users/' + phone), userData).then(() => {
-                alert("註冊成功！");
-                localStorage.setItem('busCurrentUser', JSON.stringify(userData));
+                showToast("註冊成功！");
+                // 安全優化：剔除密碼後存入 localStorage
+                const safeData = { phone, docName, dob, gender };
+                localStorage.setItem('busCurrentUser', JSON.stringify(safeData));
                 switchView('booking');
-            }).catch(e => alert("註冊失敗: " + e.message));
+            }).catch(e => showToast("註冊失敗: " + e.message));
         };
 
         // 登入
@@ -378,19 +398,21 @@
             const phone = document.getElementById('loginPhone').value.trim();
             const pwd = document.getElementById('loginPwd').value;
 
-            if(!phone || !pwd) { alert("請輸入電話和密碼"); return; }
+            if(!phone || !pwd) { showToast("請輸入電話和密碼"); return; }
 
             get(ref(db, 'users/' + phone)).then((snapshot) => {
                 if (snapshot.exists()) {
                     const userData = snapshot.val();
                     if (userData.pwd === pwd) {
-                        localStorage.setItem('busCurrentUser', JSON.stringify(userData));
+                        // 安全優化：剔除密碼後存入 localStorage
+                        const safeData = { phone: userData.phone, docName: userData.docName, dob: userData.dob, gender: userData.gender };
+                        localStorage.setItem('busCurrentUser', JSON.stringify(safeData));
                         switchView('booking');
                     } else {
-                        alert("密碼錯誤");
+                        showToast("密碼錯誤");
                     }
                 } else {
-                    alert("找不到此電話號碼，請先註冊");
+                    showToast("找不到此電話號碼，請先註冊");
                 }
             });
         };
@@ -403,13 +425,13 @@
             document.getElementById('loginPwd').value = '';
         }
 
-        // 載入用戶資料到「我的」頁面
+        // 載入用戶資料
         function loadProfileData() {
             const userStr = localStorage.getItem('busCurrentUser');
             if(userStr) {
                 const user = JSON.parse(userStr);
                 document.getElementById('profilePhone').textContent = "📞 " + user.phone;
-                document.getElementById('profileDoc').textContent = "證件: " + user.docName;
+                document.getElementById('profileDoc').textContent = "姓名: " + user.docName;
                 document.getElementById('profileDob').textContent = user.dob;
                 document.getElementById('profileGender').textContent = (user.gender === 'M') ? "男" : "女";
             }
@@ -432,7 +454,7 @@
             const date = document.getElementById('searchDate').value;
             const resultsArea = document.getElementById('resultsArea');
             
-            if(!date) { alert("請選擇日期"); return; }
+            if(!date) { showToast("請選擇日期"); return; }
             resultsArea.innerHTML = "<p style='text-align:center; color:#999;'><i class='fas fa-spinner fa-spin'></i> 正在搜尋...</p>";
 
             get(ref(db, 'schedules')).then((snapshot) => {
@@ -441,7 +463,6 @@
                 if (snapshot.exists()) {
                     snapshot.forEach((child) => {
                         const sch = child.val();
-                        // 匹配日期，且匹配系統固定的起點和終點
                         if (sch.date === date && sch.origin.includes(SYSTEM_ORIGIN) && sch.destination.includes(SYSTEM_DEST)) {
                             found = true;
                             renderCard(sch);
@@ -477,7 +498,8 @@
 
         window.buyTicket = function(schId, origin, dest, time, type) {
             const isRound = type === 'round';
-            const ticketId = 'TKT-' + Math.floor(100000 + Math.random() * 900000);
+            // 加入時間戳確保票號唯一
+            const ticketId = 'TKT-' + Date.now().toString().slice(-4) + Math.floor(10 + Math.random() * 90);
             const user = JSON.parse(localStorage.getItem('busCurrentUser'));
             
             const ticketData = {
@@ -486,7 +508,7 @@
                 type: type,
                 scansLeft: isRound ? 2 : 1,
                 purchasedAt: Date.now(),
-                ownerPhone: user.phone // 綁定購買者
+                ownerPhone: user.phone
             };
 
             set(ref(db, 'tickets/' + ticketId), ticketData).then(() => {
@@ -507,7 +529,7 @@
                     width: 200, height: 200,
                     colorDark : "#333333", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
                 });
-            }).catch(e => alert("購票失敗：" + e.message));
+            }).catch(e => showToast("購票失敗：" + e.message));
         };
     </script>
 </body>
