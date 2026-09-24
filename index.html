@@ -126,7 +126,6 @@
         .ticket-detail-info { text-align: left; background: #f8fafc; padding: 20px; border-radius: 16px; font-size: 15px; line-height: 1.8; border: 1px solid var(--border); }
         .ticket-detail-info strong { color: var(--text-main); float: right; }
 
-        /* 滑動二維碼專用樣式 */
         .carousel-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none; }
         .carousel-container::-webkit-scrollbar { display: none; }
         .ticket-slide { min-width: 100%; scroll-snap-align: center; flex-shrink: 0; }
@@ -140,7 +139,7 @@
 
     <div class="header" id="appHeader" style="display: none;">
         <div class="brand"><i class="fas fa-bus-alt"></i> 智能客運</div>
-        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
+        <button class="logout-btn" onclick="window.logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
     </div>
 
     <!-- 視圖：登入 / 註冊 -->
@@ -167,8 +166,8 @@
                 <label>密碼</label>
                 <input type="password" id="loginPassword" placeholder="輸入密碼">
             </div>
-            <button class="btn-primary" onclick="handleLogin()">登入系統</button>
-            <button class="btn-secondary" onclick="toggleAuth('register')">註冊新帳號</button>
+            <button class="btn-primary" onclick="window.handleLogin()">登入系統</button>
+            <button class="btn-secondary" onclick="window.toggleAuth('register')">註冊新帳號</button>
         </div>
 
         <div class="card" id="registerBox" style="display: none;">
@@ -200,8 +199,8 @@
                 <label>註冊密碼 (至少8位，須包含英文及數字)</label>
                 <input type="password" id="regPassword" placeholder="輸入符合要求的密碼">
             </div>
-            <button class="btn-primary" onclick="handleRegister()">確認註冊</button>
-            <button class="btn-secondary" onclick="toggleAuth('login')">返回登入</button>
+            <button class="btn-primary" onclick="window.handleRegister()">確認註冊</button>
+            <button class="btn-secondary" onclick="window.toggleAuth('login')">返回登入</button>
         </div>
     </div>
 
@@ -217,22 +216,21 @@
             <h2 class="card-title"><i class="fas fa-ticket-alt" style="color:var(--primary);"></i> 購買車票</h2>
             <div class="form-group">
                 <label>出發地</label>
-                <select id="selOrigin" onchange="updateDestinations()"><option value="">載入數據中...</option></select>
+                <select id="selOrigin" onchange="window.updateDestinations()"><option value="">載入數據中...</option></select>
             </div>
             <div class="form-group">
                 <label>目的地</label>
-                <select id="selDest" onchange="updateDates()" disabled><option value="">請先選擇出發地</option></select>
+                <select id="selDest" onchange="window.updateDates()" disabled><option value="">請先選擇出發地</option></select>
             </div>
             <div class="form-group">
                 <label>乘車日期</label>
-                <select id="selDate" onchange="updateTimes()" disabled><option value="">請先選擇目的地</option></select>
+                <select id="selDate" onchange="window.updateTimes()" disabled><option value="">請先選擇目的地</option></select>
             </div>
             <div class="form-group">
                 <label>班次時間</label>
-                <select id="selTime" onchange="handleTimeChange()" disabled><option value="">請先選擇日期</option></select>
+                <select id="selTime" onchange="window.handleTimeChange()" disabled><option value="">請先選擇日期</option></select>
             </div>
 
-            <!-- 新增：選擇乘車乘客 -->
             <div class="form-group" id="passengerSelectGroup" style="display: none; margin-top: 20px;">
                 <label><i class="fas fa-users" style="color:var(--primary);"></i> 選擇乘車乘客 (須從乘客資料選擇，最多 6 位)</label>
                 <div id="passengerCheckboxesList" style="margin-top: 8px;"></div>
@@ -240,7 +238,7 @@
 
             <div id="priceDisplay" class="price-display">HK$ 0</div>
 
-            <button id="btnBuy" class="btn-primary" disabled onclick="purchaseTicket()">
+            <button id="btnBuy" class="btn-primary" disabled onclick="window.purchaseTicket()">
                 <i class="fas fa-credit-card"></i> 確認付款並取票
             </button>
         </div>
@@ -254,7 +252,7 @@
         </div>
     </div>
 
-    <!-- 視圖：完整車票詳情 (支援多個二維碼滑動) -->
+    <!-- 視圖：車票詳情 -->
     <div class="container" id="viewTicketDetail" style="display: none;">
         <div class="card ticket-detail-wrapper">
             <h2 class="card-title" style="justify-content: center; border: none; font-size: 20px;">
@@ -262,16 +260,13 @@
             </h2>
             
             <div id="carouselDots" class="carousel-dots"></div>
-
-            <div id="ticketCarousel" class="carousel-container">
-                <!-- 動態生成車票滑動區塊 -->
-            </div>
+            <div id="ticketCarousel" class="carousel-container"></div>
             
             <div class="screenshot-tip">
-                <i class="fas fa-exclamation-circle"></i> 建議保存截圖以免冇網絡時查看
+                <i class="fas fa-exclamation-circle"></i> 建議保存截圖以免無網絡時查看
             </div>
 
-            <button class="btn-secondary" style="margin-top: 20px;" onclick="switchView('tickets')">
+            <button class="btn-secondary" style="margin-top: 20px;" onclick="window.switchView('tickets')">
                 <i class="fas fa-arrow-left"></i> 返回車票列表
             </button>
         </div>
@@ -281,9 +276,7 @@
     <div class="container" id="viewProfile" style="display: none;">
         <div class="card">
             <h2 class="card-title"><i class="fas fa-user-circle" style="color:var(--primary);"></i> 個人基本資料</h2>
-            <div class="profile-data" id="profileDataBox">
-                <!-- 資料由 JS 渲染 -->
-            </div>
+            <div class="profile-data" id="profileDataBox"></div>
         </div>
 
         <div class="card">
@@ -299,7 +292,7 @@
             </div>
             <div class="form-group">
                 <label>證件類型</label>
-                <select id="passDocType" onchange="toggleIdFields()">
+                <select id="passDocType" onchange="window.toggleIdFields()">
                     <option value="">請選擇證件類型</option>
                     <option value="hkid">香港永久性身份證</option>
                     <option value="cnid">中國內地居民身份證</option>
@@ -320,7 +313,7 @@
 
             <div class="form-group">
                 <label>出生日期</label>
-                <input type="date" id="passDob" onchange="checkAge()">
+                <input type="date" id="passDob" onchange="window.checkAge()">
             </div>
             
             <div class="form-group">
@@ -330,7 +323,7 @@
                 </div>
             </div>
 
-            <button class="btn-primary" onclick="handleAddPassenger()"><i class="fas fa-save"></i> 儲存遊客資料</button>
+            <button class="btn-primary" onclick="window.handleAddPassenger()"><i class="fas fa-save"></i> 儲存遊客資料</button>
         </div>
 
         <div class="card">
@@ -339,22 +332,20 @@
         </div>
     </div>
 
-    <!-- 底部導航 -->
     <div class="bottom-nav" id="bottomNav">
-        <div class="nav-item active" id="navHome" onclick="switchView('home')">
+        <div class="nav-item active" id="navHome" onclick="window.switchView('home')">
             <i class="fas fa-home"></i> 購票
         </div>
-        <div class="nav-item" id="navMyTickets" onclick="switchView('tickets')">
+        <div class="nav-item" id="navMyTickets" onclick="window.switchView('tickets')">
             <i class="fas fa-qrcode"></i> 車票
         </div>
-        <div class="nav-item" id="navProfile" onclick="switchView('profile')">
+        <div class="nav-item" id="navProfile" onclick="window.switchView('profile')">
             <i class="fas fa-user"></i> 個人資料
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // 加入 remove 函數用於刪除節點
         import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -369,13 +360,23 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // 使用 Web Crypto API 對密碼進行 SHA-256 加密
+        async function hashPassword(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         let currentUser = null;
         let allSchedules = [];
         let currentSelectedSchedule = null;
-        let currentTicketListeners = []; // 用於保存多個監聽器
+        let currentTicketListeners = [];
         let savedPassengersList = [];
 
-        window.showToast = function(message, type = 'info') {
+        // 內部函數宣告 (不再直接掛載 window.xxx = function 避免內部調用失敗)
+        function showToast(message, type = 'info') {
             const toast = document.getElementById('toastBox');
             let icon = '<i class="fas fa-info-circle"></i>';
             if(type === 'success') icon = '<i class="fas fa-check-circle" style="color:var(--success);"></i>';
@@ -386,12 +387,12 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        window.toggleAuth = function(mode) {
+        function toggleAuth(mode) {
             document.getElementById('loginBox').style.display = mode === 'login' ? 'block' : 'none';
             document.getElementById('registerBox').style.display = mode === 'register' ? 'block' : 'none';
-        };
+        }
 
-        window.handleRegister = async function() {
+        async function handleRegister() {
             const name = document.getElementById('regName').value.trim();
             const region = document.getElementById('regRegion').value;
             const phone = document.getElementById('regPhone').value.trim().replace(/\s+/g, '');
@@ -408,6 +409,7 @@
                 showToast("密碼必須為 8 位或以上，且包含至少一個英文及數字", "error"); return;
             }
 
+            const hashedPassword = await hashPassword(pw);
             const userKey = (region + phone).replace(/\+/g, '');
             const dbRef = ref(db);
             
@@ -417,7 +419,7 @@
                     showToast("此電話號碼已註冊", "error"); return;
                 }
                 
-                const userData = { name, region, phone, dob, nationality: nat, password: pw, createdAt: Date.now() };
+                const userData = { name, region, phone, dob, nationality: nat, passwordHash: hashedPassword, createdAt: Date.now() };
                 await set(ref(db, `users/${userKey}`), userData);
                 
                 showToast("註冊成功！請登入", "success");
@@ -426,9 +428,9 @@
             } catch (error) {
                 showToast("註冊失敗，請檢查網絡", "error");
             }
-        };
+        }
 
-        window.handleLogin = async function() {
+        async function handleLogin() {
             const region = document.getElementById('loginRegion').value;
             const phone = document.getElementById('loginPhone').value.trim().replace(/\s+/g, '');
             const pw = document.getElementById('loginPassword').value;
@@ -436,11 +438,13 @@
             if(!phone || !pw) { showToast("請輸入電話與密碼", "error"); return; }
 
             const userKey = (region + phone).replace(/\+/g, '');
+            const hashedPassword = await hashPassword(pw);
+
             try {
                 const snapshot = await get(child(ref(db), `users/${userKey}`));
                 if(snapshot.exists()) {
                     const user = snapshot.val();
-                    if(user.password === pw) {
+                    if(user.passwordHash === hashedPassword || user.password === pw) { // 相容早期測試數據
                         user.userKey = userKey;
                         sessionStorage.setItem('currentUser', JSON.stringify(user));
                         initApp();
@@ -454,29 +458,27 @@
             } catch (error) {
                 showToast("登入失敗，請檢查網絡", "error");
             }
-        };
+        }
 
-        window.logout = function() {
+        function logout() {
             sessionStorage.removeItem('currentUser');
             location.reload();
-        };
+        }
 
         function initApp() {
             const userData = sessionStorage.getItem('currentUser');
             if(userData) {
                 currentUser = JSON.parse(userData);
                 document.getElementById('viewAuth').style.display = 'none';
-                
                 document.getElementById('appHeader').style.display = 'flex';
                 document.getElementById('bottomNav').style.display = 'flex';
-                
                 document.getElementById('welcomeText').textContent = `歡迎回來，${currentUser.name}`;
                 switchView('home');
                 startSchedulesListener();
             }
         }
 
-        window.switchView = function(view) {
+        function switchView(view) {
             if (view !== 'ticketDetail') {
                 currentTicketListeners.forEach(unsub => unsub());
                 currentTicketListeners = [];
@@ -494,9 +496,9 @@
             if(view === 'tickets') renderMyTickets();
             if(view === 'profile') renderProfile();
             window.scrollTo(0, 0);
-        };
+        }
 
-        window.renderProfile = function() {
+        function renderProfile() {
             document.getElementById('profileDataBox').innerHTML = `
                 <div class="profile-row"><span class="profile-label">姓名</span><span class="profile-val">${currentUser.name}</span></div>
                 <div class="profile-row"><span class="profile-label">電話</span><span class="profile-val">${currentUser.region} ${currentUser.phone}</span></div>
@@ -504,9 +506,9 @@
                 <div class="profile-row"><span class="profile-label">國籍</span><span class="profile-val">${currentUser.nationality}</span></div>
             `;
             loadPassengers();
-        };
+        }
 
-        window.toggleIdFields = function() {
+        function toggleIdFields() {
             const docType = document.getElementById('passDocType').value;
             const fieldMain = document.getElementById('fieldMainId');
             const fieldHr = document.getElementById('fieldHrId');
@@ -528,9 +530,9 @@
                     lblMain.textContent = '港澳居民來往內地通行證號碼';
                 }
             }
-        };
+        }
 
-        window.checkAge = function() {
+        function checkAge() {
             const dobInput = document.getElementById('passDob').value;
             if(dobInput) {
                 const birthDate = new Date(dobInput);
@@ -540,9 +542,9 @@
                 if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
                 document.getElementById('passAgeCheck').checked = (age >= 16);
             }
-        };
+        }
 
-        window.handleAddPassenger = async function() {
+        async function handleAddPassenger() {
             const name = document.getElementById('passName').value.trim();
             const nat = document.getElementById('passNat').value.trim();
             const docType = document.getElementById('passDocType').value;
@@ -572,10 +574,9 @@
             } catch (error) {
                 showToast("儲存失敗", "error");
             }
-        };
+        }
 
-        // 新增：刪除遊客函數
-        window.deletePassenger = async function(id) {
+        async function deletePassenger(id) {
             if(confirm("確定要刪除這位遊客資料嗎？")) {
                 try {
                     await remove(ref(db, `users/${currentUser.userKey}/passengers/${id}`));
@@ -584,7 +585,7 @@
                     showToast("刪除失敗，請檢查網絡", "error");
                 }
             }
-        };
+        }
 
         function loadPassengers() {
             onValue(ref(db, `users/${currentUser.userKey}/passengers`), (snapshot) => {
@@ -601,18 +602,14 @@
                                 <span>${p.nationality} | ${docName}: ${p.mainId}</span>
                                 ${p.docType === 'hkid' ? `<br><span>通行證: ${p.hrId}</span>` : ''}
                             </div>
-                            <button class="btn-small" style="background: var(--danger);" onclick="deletePassenger('${p.id}')">
+                            <button class="btn-small" style="background: var(--danger);" onclick="window.deletePassenger('${p.id}')">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>`;
                     }).join('');
                 } else {
                     savedPassengersList = [];
-                    list.innerHTML = `
-                    <div class="empty-state" style="padding: 20px;">
-                        <i class="fas fa-user-slash" style="font-size:32px;"></i>
-                        <p style="font-size:14px;">尚無遊客資料</p>
-                    </div>`;
+                    list.innerHTML = `<div class="empty-state" style="padding: 20px;"><i class="fas fa-user-slash" style="font-size:32px;"></i><p style="font-size:14px;">尚無遊客資料</p></div>`;
                 }
             });
         }
@@ -620,29 +617,49 @@
         function startSchedulesListener() {
             onValue(ref(db, 'schedules'), (snapshot) => {
                 if (snapshot.exists()) {
-                    allSchedules = Object.values(snapshot.val());
+                    const now = new Date();
+                    allSchedules = Object.values(snapshot.val()).filter(s => {
+                        const scheduleDateTime = new Date(`${s.date}T${s.time}:00`);
+                        return scheduleDateTime > now; 
+                    });
                     updateOrigins(); 
                 } else {
                     allSchedules = [];
-                    document.getElementById('selOrigin').innerHTML = '<option value="">目前暫無任何班次</option>';
+                    document.getElementById('selOrigin').innerHTML = '<option value="">目前暫無可購買班次</option>';
                     resetDropdowns(['selDest', 'selDate', 'selTime']);
                 }
             });
         }
 
+        function resetDropdowns(ids) {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.innerHTML = `<option value="">請先選擇上一項</option>`;
+                    el.disabled = true;
+                }
+            });
+            resetPassengerSelection();
+        }
+
         const getUnique = (arr, key) => [...new Set(arr.map(item => item[key]))];
 
-        window.updateOrigins = function() {
+        function updateOrigins() {
             const originSel = document.getElementById('selOrigin');
             const currentVal = originSel.value; 
             const origins = getUnique(allSchedules, 'origin');
             originSel.innerHTML = '<option value="">請選擇出發地</option>' + origins.map(o => `<option value="${o}">${o}</option>`).join('');
             
-            if(origins.includes(currentVal)) { originSel.value = currentVal; updateDestinations(true); } 
-            else { resetDropdowns(['selDest', 'selDate', 'selTime']); }
-        };
+            if(origins.includes(currentVal)) { 
+                originSel.value = currentVal; 
+                updateDestinations(true); 
+            } else { 
+                originSel.value = "";
+                resetDropdowns(['selDest', 'selDate', 'selTime']); 
+            }
+        }
 
-        window.updateDestinations = function(keepSelection = false) {
+        function updateDestinations(keepSelection = false) {
             const origin = document.getElementById('selOrigin').value;
             const destSel = document.getElementById('selDest');
             if(!origin) { resetDropdowns(['selDest', 'selDate', 'selTime']); return; }
@@ -654,9 +671,9 @@
 
             if(keepSelection && dests.includes(currentVal)) { destSel.value = currentVal; updateDates(true); } 
             else { resetDropdowns(['selDate', 'selTime']); }
-        };
+        }
 
-        window.updateDates = function(keepSelection = false) {
+        function updateDates(keepSelection = false) {
             const origin = document.getElementById('selOrigin').value;
             const dest = document.getElementById('selDest').value;
             const dateSel = document.getElementById('selDate');
@@ -670,9 +687,9 @@
 
             if(keepSelection && dates.includes(currentVal)) { dateSel.value = currentVal; updateTimes(true); } 
             else { resetDropdowns(['selTime']); }
-        };
+        }
 
-        window.updateTimes = function(keepSelection = false) {
+        function updateTimes(keepSelection = false) {
             const origin = document.getElementById('selOrigin').value;
             const dest = document.getElementById('selDest').value;
             const date = document.getElementById('selDate').value;
@@ -687,9 +704,9 @@
 
             if(keepSelection && times.includes(currentVal)) { timeSel.value = currentVal; handleTimeChange(); } 
             else { resetPassengerSelection(); }
-        };
+        }
 
-        window.handleTimeChange = function() {
+        function handleTimeChange() {
             const origin = document.getElementById('selOrigin').value;
             const dest = document.getElementById('selDest').value;
             const date = document.getElementById('selDate').value;
@@ -701,7 +718,7 @@
             } else {
                 resetPassengerSelection();
             }
-        };
+        }
 
         function loadPassengerSelectionOptions() {
             const group = document.getElementById('passengerSelectGroup');
@@ -731,7 +748,7 @@
             });
         }
 
-        window.handlePassengerCheck = function(cb) {
+        function handlePassengerCheck(cb) {
             const checkedCount = document.querySelectorAll('.pass-cb:checked').length;
             if(checkedCount > 6) {
                 cb.checked = false;
@@ -739,7 +756,7 @@
                 return;
             }
             updateTotalPrice();
-        };
+        }
 
         function updateTotalPrice() {
             const checkedBoxes = document.querySelectorAll('.pass-cb:checked');
@@ -765,8 +782,7 @@
             document.getElementById('btnBuy').disabled = true;
         }
 
-        // 修改：購買後直接顯示二維碼並支援多張切換
-        window.purchaseTicket = async function() {
+        async function purchaseTicket() {
             const checkedBoxes = document.querySelectorAll('.pass-cb:checked');
             if(checkedBoxes.length === 0) {
                 showToast("請至少選擇一位乘車乘客", "error"); return;
@@ -796,6 +812,7 @@
                         purchasedAt: Date.now(),
                         buyerName: currentUser.name,
                         buyerPhone: currentUser.phone,
+                        buyerRegion: currentUser.region,
                         passengerName: pass.name,
                         passengerDocId: pass.mainId,
                         passengerNat: pass.nationality
@@ -810,11 +827,8 @@
                 btn.disabled = false;
                 
                 showToast(`成功購買 ${generatedTicketIds.length} 張車票！`, "success");
-                
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
                 document.getElementById('selOrigin').value = "";
-                
-                // 購買成功後直接跳轉至多個二維碼介面
                 openMultipleTicketDetail(generatedTicketIds);
 
             } catch(e) {
@@ -822,23 +836,22 @@
                 btn.innerHTML = '<i class="fas fa-credit-card"></i> 確認付款並取票';
                 btn.disabled = false;
             }
-        };
+        }
 
-        // 新增：刪除已上車車票
-        window.deleteTicket = async function(ticketId) {
-            if(confirm("確定刪除此已上車的車票紀錄？")) {
+        async function deleteTicket(ticketId) {
+            if(confirm("確定刪除此車票紀錄嗎？")) {
                 try {
                     await remove(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`));
-                    showToast("車票紀錄已刪除", "success");
-                    // 返回車票列表
+                    await remove(ref(db, `tickets/${ticketId}`));
+                    showToast("車票紀錄已完全刪除", "success");
                     switchView('tickets');
                 } catch(e) {
-                    showToast("刪除失敗", "error");
+                    showToast("刪除失敗，請檢查網路", "error");
                 }
             }
-        };
+        }
 
-        window.renderMyTickets = function() {
+        function renderMyTickets() {
             const list = document.getElementById('myTicketsList');
             onValue(ref(db, `users/${currentUser.userKey}/myTickets`), (snapshot) => {
                 if (snapshot.exists()) {
@@ -851,7 +864,7 @@
                         const statusText = isBoarded ? '已上車' : '未上車';
                         
                         return `
-                        <div class="list-item" style="align-items: center; cursor: pointer;" onclick="openMultipleTicketDetail(['${t.ticketId}'])">
+                        <div class="list-item" style="align-items: center; cursor: pointer;" onclick="window.openMultipleTicketDetail(['${t.ticketId}'])">
                             <div class="list-info" style="flex: 1;">
                                 <strong style="font-size: 16px;"><i class="fas fa-route"></i> ${t.origin} - ${t.destination}</strong>
                                 <span><i class="fas fa-user"></i> 乘客: ${t.passengerName || t.buyerName}</span><br>
@@ -865,7 +878,7 @@
                                     <i class="fas fa-search"></i> 詳情
                                 </button>
                                 ${isBoarded ? `
-                                <button class="btn-small" style="background: var(--danger); border: 1px solid var(--danger);" onclick="event.stopPropagation(); deleteTicket('${t.ticketId}')">
+                                <button class="btn-small" style="background: var(--danger); border: 1px solid var(--danger);" onclick="event.stopPropagation(); window.deleteTicket('${t.ticketId}')">
                                     <i class="fas fa-trash"></i> 刪除
                                 </button>
                                 ` : ''}
@@ -873,17 +886,12 @@
                         </div>
                     `}).join('');
                 } else {
-                    list.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-box-open"></i>
-                            <p>目前沒有已購買的車票</p>
-                        </div>`;
+                    list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>目前沒有已購買的車票</p></div>`;
                 }
             });
-        };
+        }
 
-        // 新增：處理多張車票的輪播視圖
-        window.openMultipleTicketDetail = function(ticketIds) {
+        function openMultipleTicketDetail(ticketIds) {
             switchView('ticketDetail');
             
             const carousel = document.getElementById('ticketCarousel');
@@ -891,12 +899,10 @@
             carousel.innerHTML = '';
             dots.innerHTML = '';
 
-            // 清理舊的監聽器
             currentTicketListeners.forEach(unsub => unsub());
             currentTicketListeners = [];
 
             ticketIds.forEach((id, index) => {
-                // 建立每張車票的滑動區塊
                 const slide = document.createElement('div');
                 slide.className = 'ticket-slide';
                 slide.innerHTML = `
@@ -906,19 +912,17 @@
                     <div class="qr-large" id="tdQrCode-${id}"></div>
                     <div class="ticket-detail-info" id="tdInfo-${id}">載入中...</div>
                     <div id="tdDelete-${id}" style="display:none; margin-top:15px;">
-                        <button class="btn-danger" style="width:100%;" onclick="deleteTicket('${id}')">
-                            <i class="fas fa-trash-alt"></i> 刪除此已上車紀錄
+                        <button class="btn-danger" style="width:100%;" onclick="window.deleteTicket('${id}')">
+                            <i class="fas fa-trash-alt"></i> 刪除此車票紀錄
                         </button>
                     </div>
                 `;
                 carousel.appendChild(slide);
 
-                // 建立底部導航點
                 const dot = document.createElement('div');
                 dot.style = `width: 8px; height: 8px; border-radius: 50%; background: ${index === 0 ? 'var(--primary)' : '#cbd5e1'};`;
                 dots.appendChild(dot);
 
-                // 為每張車票綁定實時監聽
                 const ticketRef = ref(db, `tickets/${id}`);
                 const unsub = onValue(ticketRef, (snapshot) => {
                     if (snapshot.exists()) {
@@ -928,7 +932,6 @@
                 currentTicketListeners.push(unsub);
             });
 
-            // 監聽滑動事件以更新導航點
             carousel.addEventListener('scroll', () => {
                 const scrollPos = carousel.scrollLeft;
                 const width = carousel.offsetWidth;
@@ -937,7 +940,7 @@
                     d.style.background = (i === currentIndex) ? 'var(--primary)' : '#cbd5e1';
                 });
             });
-        };
+        }
 
         function renderSingleTicketData(id, data) {
             const statusEl = document.getElementById(`tdStatus-${id}`);
@@ -948,7 +951,7 @@
             if (data.status === 'boarded') {
                 statusEl.className = 'status-badge status-boarded';
                 statusEl.innerHTML = '<i class="fas fa-check-circle"></i> 狀態：已上車';
-                delEl.style.display = 'block'; // 已上車顯示刪除按鈕
+                delEl.style.display = 'block';
             } else {
                 statusEl.className = 'status-badge status-pending';
                 statusEl.innerHTML = '<i class="fas fa-clock"></i> 狀態：未上車';
@@ -969,36 +972,24 @@
             const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
             infoEl.innerHTML = `
-                <div style="margin-bottom: 8px;">
-                    <span style="color:var(--text-muted);"><i class="fas fa-user"></i> 乘車旅客：</span>
-                    <strong>${data.passengerName || data.buyerName}</strong>
-                </div>
-                ${data.passengerDocId ? `
-                <div style="margin-bottom: 8px;">
-                    <span style="color:var(--text-muted);"><i class="fas fa-id-card"></i> 證件號碼：</span>
-                    <strong>${data.passengerDocId}</strong>
-                </div>` : ''}
-                <div style="margin-bottom: 8px;">
-                    <span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車飛地點：</span>
-                    <strong>${data.origin} 至 ${data.destination}</strong>
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <span style="color:var(--text-muted);"><i class="far fa-calendar-check"></i> 乘車時間：</span>
-                    <strong>${data.date} ${data.time}</strong>
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車飛價格：</span>
-                    <strong style="color:var(--primary);">HK$ ${data.price}</strong>
-                </div>
-                <div style="margin-bottom: 8px;">
-                    <span style="color:var(--text-muted);"><i class="fas fa-shopping-cart"></i> 購買日期：</span>
-                    <strong>${dateStr}</strong>
-                </div>
-                <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">
-                    訂單編號: ${id}
-                </div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-user"></i> 乘車旅客：</span><strong>${data.passengerName || data.buyerName}</strong></div>
+                ${data.passengerDocId ? `<div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-id-card"></i> 證件號碼：</span><strong>${data.passengerDocId}</strong></div>` : ''}
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車票地點：</span><strong>${data.origin} 至 ${data.destination}</strong></div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="far fa-calendar-check"></i> 乘車時間：</span><strong>${data.date} ${data.time}</strong></div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車票價格：</span><strong style="color:var(--primary);">HK$ ${data.price}</strong></div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-shopping-cart"></i> 購買日期：</span><strong>${dateStr}</strong></div>
+                <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">訂單編號: ${id}</div>
             `;
         }
+
+        // 將所有需要的函數統一掛載到 window 提供 HTML 調用
+        Object.assign(window, {
+            showToast, toggleAuth, handleRegister, handleLogin, logout,
+            switchView, renderProfile, toggleIdFields, checkAge, handleAddPassenger,
+            deletePassenger, updateOrigins, updateDestinations, updateDates,
+            updateTimes, handleTimeChange, handlePassengerCheck, purchaseTicket,
+            deleteTicket, renderMyTickets, openMultipleTicketDetail
+        });
 
         window.onload = function() {
             if(sessionStorage.getItem('currentUser')) {
