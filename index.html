@@ -63,6 +63,7 @@
         .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
         
         .btn-secondary { width: 100%; background: white; color: var(--primary); border: 1px solid var(--primary); padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-secondary:hover { background: #f1f5f9; }
         
         .btn-small { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
@@ -90,15 +91,18 @@
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         .empty-state i { font-size: 48px; color: #cbd5e1; margin-bottom: 16px; }
 
-        /* QR Code 彈窗 */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; backdrop-filter: blur(4px); }
-        .modal-card { background: white; width: 100%; max-width: 340px; padding: 30px; border-radius: 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-        #qrcode { display: flex; justify-content: center; margin: 20px 0; padding: 15px; background: white; border-radius: 12px; border: 1px solid var(--border); }
-        .ticket-info { text-align: left; background: #f8fafc; padding: 15px; border-radius: 12px; font-size: 14px; margin-bottom: 20px; border: 1px dashed #cbd5e1; }
-
         /* 載入中動畫 */
         .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 新增：完整車票詳情視圖樣式 */
+        .ticket-detail-wrapper { text-align: center; padding: 25px 20px; }
+        .status-badge { display: inline-block; padding: 8px 20px; border-radius: 30px; font-size: 16px; font-weight: 700; color: white; margin: 15px 0 25px 0; letter-spacing: 1px; }
+        .status-pending { background-color: var(--primary); box-shadow: 0 4px 10px rgba(15, 118, 110, 0.3); }
+        .status-boarded { background-color: var(--text-muted); }
+        .qr-large { display: flex; justify-content: center; margin: 0 auto 25px auto; padding: 20px; background: white; border-radius: 16px; border: 2px dashed #cbd5e1; width: fit-content; }
+        .ticket-detail-info { text-align: left; background: #f8fafc; padding: 20px; border-radius: 16px; font-size: 15px; line-height: 1.8; border: 1px solid var(--border); }
+        .ticket-detail-info strong { color: var(--text-main); float: right; }
     </style>
 </head>
 <body>
@@ -211,6 +215,34 @@
         </div>
     </div>
 
+    <!-- 視圖：完整車票詳情 (大二維碼) -->
+    <div class="container" id="viewTicketDetail" style="display: none;">
+        <div class="card ticket-detail-wrapper">
+            <h2 class="card-title" style="justify-content: center; border: none; font-size: 20px;">
+                <i class="fas fa-qrcode"></i> 乘車憑證
+            </h2>
+            
+            <div id="tdStatus" class="status-badge status-pending">
+                <i class="fas fa-clock"></i> 未上車
+            </div>
+            
+            <div class="qr-large" id="tdQrCode"></div>
+            
+            <div class="ticket-detail-info" id="tdInfo">
+                <!-- 資料由 JS 動態渲染 -->
+            </div>
+
+            <button class="btn-secondary" style="margin-top: 20px;" onclick="switchView('tickets')">
+                <i class="fas fa-arrow-left"></i> 返回車票列表
+            </button>
+
+            <!-- 測試用：模擬司機掃碼 -->
+            <button class="btn-primary" style="margin-top: 15px; background: #f59e0b;" onclick="simulateScan()">
+                <i class="fas fa-barcode"></i> 模擬掃碼 (已上車)
+            </button>
+        </div>
+    </div>
+
     <!-- 視圖：個人資料與遊客管理 -->
     <div class="container" id="viewProfile" style="display: none;">
         <div class="card">
@@ -273,18 +305,6 @@
         </div>
     </div>
 
-    <!-- QR Code 彈窗 -->
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal-card">
-            <h2 style="margin-top:0; color:var(--text-main); font-size:18px;">上車請出示此憑證</h2>
-            <div id="qrcode"></div>
-            <div class="ticket-info" id="ticketDetails"></div>
-            <button class="btn-primary" style="background:var(--text-muted);" onclick="closeModal()">
-                <i class="fas fa-times"></i> 關閉
-            </button>
-        </div>
-    </div>
-
     <!-- 底部導航 -->
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" id="navHome" onclick="switchView('home')">
@@ -300,7 +320,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, get, child, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCq_8FSy5JU9-ETd1F3whQHwXC_fY1uqdo",
@@ -317,6 +337,10 @@
         let currentUser = null;
         let allSchedules = [];
         let currentSelectedSchedule = null;
+        
+        // 記錄車票詳情即時監聽器
+        let ticketListenerUnsubscribe = null;
+        let currentViewTicketId = null;
 
         window.showToast = function(message, type = 'info') {
             const toast = document.getElementById('toastBox');
@@ -329,7 +353,7 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // ================= 身份驗證 (註冊與登入) =================
+        // ================= 身份驗證 =================
         window.toggleAuth = function(mode) {
             document.getElementById('loginBox').style.display = mode === 'login' ? 'block' : 'none';
             document.getElementById('registerBox').style.display = mode === 'register' ? 'block' : 'none';
@@ -347,7 +371,6 @@
                 showToast("請填寫所有註冊資料", "error"); return;
             }
 
-            // 驗證密碼：8位或以上，包含英文及數字
             const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
             if(!pwRegex.test(pw)) {
                 showToast("密碼必須為 8 位或以上，且包含英文及數字", "error"); return;
@@ -386,7 +409,7 @@
                 if(snapshot.exists()) {
                     const user = snapshot.val();
                     if(user.password === pw) {
-                        user.userKey = userKey; // 儲存金鑰以便後續更新
+                        user.userKey = userKey;
                         sessionStorage.setItem('currentUser', JSON.stringify(user));
                         initApp();
                         showToast("登入成功", "success");
@@ -422,12 +445,19 @@
 
         // ================= 導航控制 =================
         window.switchView = function(view) {
+            // 清理舊的車票監聽器（如果離開詳情頁）
+            if (view !== 'ticketDetail' && ticketListenerUnsubscribe) {
+                ticketListenerUnsubscribe();
+                ticketListenerUnsubscribe = null;
+            }
+
             document.getElementById('viewHome').style.display = view === 'home' ? 'block' : 'none';
             document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
             document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
+            document.getElementById('viewTicketDetail').style.display = view === 'ticketDetail' ? 'block' : 'none';
             
             document.getElementById('navHome').className = view === 'home' ? 'nav-item active' : 'nav-item';
-            document.getElementById('navMyTickets').className = view === 'tickets' ? 'nav-item active' : 'nav-item';
+            document.getElementById('navMyTickets').className = (view === 'tickets' || view === 'ticketDetail') ? 'nav-item active' : 'nav-item';
             document.getElementById('navProfile').className = view === 'profile' ? 'nav-item active' : 'nav-item';
             
             if(view === 'tickets') renderMyTickets();
@@ -437,7 +467,6 @@
 
         // ================= 個人資料與遊客 =================
         window.renderProfile = function() {
-            // 渲染頂部個人資料
             document.getElementById('profileDataBox').innerHTML = `
                 <div class="profile-row"><span class="profile-label">姓名</span><span class="profile-val">${currentUser.name}</span></div>
                 <div class="profile-row"><span class="profile-label">電話</span><span class="profile-val">${currentUser.region} ${currentUser.phone}</span></div>
@@ -460,7 +489,7 @@
                 fieldMain.style.display = 'block';
                 if(docType === 'hkid') {
                     lblMain.textContent = '香港永久性身份證號碼';
-                    fieldHr.style.display = 'block'; // 選擇香港身份證必須填寫通行證
+                    fieldHr.style.display = 'block'; 
                 } else if(docType === 'cnid') {
                     lblMain.textContent = '中國內地居民身份證號碼';
                 } else if(docType === 'cnpp') {
@@ -479,13 +508,7 @@
                 let age = today.getFullYear() - birthDate.getFullYear();
                 const m = today.getMonth() - birthDate.getMonth();
                 if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
-                
-                const cb = document.getElementById('passAgeCheck');
-                if(age >= 16) {
-                    cb.checked = true;
-                } else {
-                    cb.checked = false;
-                }
+                document.getElementById('passAgeCheck').checked = (age >= 16);
             }
         };
 
@@ -498,27 +521,16 @@
             const dob = document.getElementById('passDob').value;
             const is16 = document.getElementById('passAgeCheck').checked;
 
-            if(!name || !nat || !docType || !mainId || !dob) {
-                showToast("請填寫所有必要的遊客資料", "error"); return;
-            }
-            if(docType === 'hkid' && !hrId) {
-                showToast("選擇香港永久性身份證，必須填寫通行證號碼", "error"); return;
-            }
-            if(!is16) {
-                showToast("若旅客年滿16歲或以上，請務必勾選確認方塊", "error");
-            }
+            if(!name || !nat || !docType || !mainId || !dob) { showToast("請填寫所有必要的遊客資料", "error"); return; }
+            if(docType === 'hkid' && !hrId) { showToast("選擇香港身份證必須填寫通行證號碼", "error"); return; }
+            if(!is16) { showToast("若旅客年滿16歲或以上，請務必勾選確認方塊", "error"); }
 
-            const passengerData = { 
-                id: Date.now().toString(), name, nationality: nat, docType, mainId, hrId, dob, isAbove16: is16 
-            };
+            const passengerData = { id: Date.now().toString(), name, nationality: nat, docType, mainId, hrId, dob, isAbove16: is16 };
 
             try {
-                // 將旅客新增至使用者的 Firebase 節點下
                 const passRef = ref(db, `users/${currentUser.userKey}/passengers/${passengerData.id}`);
                 await set(passRef, passengerData);
                 showToast("遊客資料已儲存", "success");
-                
-                // 清空表單
                 document.getElementById('passName').value = '';
                 document.getElementById('passNat').value = '';
                 document.getElementById('passMainId').value = '';
@@ -559,7 +571,6 @@
             });
         }
 
-
         // ================= 購票邏輯 =================
         function startSchedulesListener() {
             onValue(ref(db, 'schedules'), (snapshot) => {
@@ -582,9 +593,8 @@
             const origins = getUnique(allSchedules, 'origin');
             originSel.innerHTML = '<option value="">請選擇出發地</option>' + origins.map(o => `<option value="${o}">${o}</option>`).join('');
             
-            if(origins.includes(currentVal)) {
-                originSel.value = currentVal; updateDestinations(true);
-            } else { resetDropdowns(['selDest', 'selDate', 'selTime']); }
+            if(origins.includes(currentVal)) { originSel.value = currentVal; updateDestinations(true); } 
+            else { resetDropdowns(['selDest', 'selDate', 'selTime']); }
         };
 
         window.updateDestinations = function(keepSelection = false) {
@@ -669,14 +679,14 @@
                 date: currentSelectedSchedule.date,
                 time: currentSelectedSchedule.time,
                 price: currentSelectedSchedule.price,
-                scansLeft: 1, 
+                status: 'pending', // 初始化狀態為未上車
                 purchasedAt: Date.now(),
                 buyerName: currentUser.name,
                 buyerPhone: currentUser.phone
             };
 
             try {
-                // 將車票寫入全局，同時寫入該使用者的節點下
+                // 寫入全局與個人節點
                 await set(ref(db, `tickets/${ticketId}`), ticketData);
                 await set(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`), ticketData);
 
@@ -684,11 +694,14 @@
                 btn.disabled = false;
                 
                 showToast("購票成功！", "success");
-                switchView('tickets');
-                showQRCode(ticketId, ticketData);
                 
+                // 清空選項
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
                 document.getElementById('selOrigin').value = "";
+                
+                // 進入完整車票詳情頁面
+                openTicketDetail(ticketId);
+
             } catch(e) {
                 showToast("購票失敗，請檢查網絡連線", "error");
                 btn.innerHTML = '<i class="fas fa-credit-card"></i> 確認付款並取票';
@@ -703,17 +716,23 @@
                     const myTickets = Object.values(snapshot.val());
                     myTickets.sort((a,b) => b.purchasedAt - a.purchasedAt);
 
-                    list.innerHTML = myTickets.map(t => `
-                        <div class="list-item" style="align-items: center;">
+                    list.innerHTML = myTickets.map(t => {
+                        const statusColor = t.status === 'boarded' ? 'var(--text-muted)' : 'var(--primary)';
+                        const statusText = t.status === 'boarded' ? '已上車' : '未上車';
+                        return `
+                        <div class="list-item" style="align-items: center; cursor: pointer;" onclick="openTicketDetail('${t.ticketId}')">
                             <div class="list-info">
                                 <strong style="font-size: 16px;"><i class="fas fa-route"></i> ${t.origin} - ${t.destination}</strong>
                                 <span><i class="far fa-calendar-alt"></i> ${t.date} | <i class="far fa-clock"></i> ${t.time}</span>
+                                <div style="color:${statusColor}; font-weight:600; font-size:12px; margin-top:6px;">
+                                    ${statusText}
+                                </div>
                             </div>
-                            <button class="btn-small" onclick='window.showQRCode("${t.ticketId}", ${JSON.stringify(t)})'>
-                                <i class="fas fa-qrcode"></i> 掃碼
+                            <button class="btn-small" style="background: white; color: var(--primary); border: 1px solid var(--primary);">
+                                <i class="fas fa-search"></i> 詳情
                             </button>
                         </div>
-                    `).join('');
+                    `}).join('');
                 } else {
                     list.innerHTML = `
                         <div class="empty-state">
@@ -724,25 +743,84 @@
             });
         };
 
-        window.showQRCode = function(id, data) {
-            const modal = document.getElementById('qrModal');
-            const qrContainer = document.getElementById('qrcode');
-            const details = document.getElementById('ticketDetails');
-            
-            qrContainer.innerHTML = ''; 
-            new QRCode(qrContainer, { text: id, width: 200, height: 200, colorDark : "#1e293b", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
+        // ================= 完整車票視圖與即時狀態 =================
+        window.openTicketDetail = function(ticketId) {
+            switchView('ticketDetail');
+            currentViewTicketId = ticketId;
 
-            details.innerHTML = `
-                <div style="margin-bottom:8px;"><i class="fas fa-route" style="color:var(--text-muted);"></i> 路線：<strong>${data.origin} - ${data.destination}</strong></div>
-                <div style="margin-bottom:8px;"><i class="far fa-calendar-alt" style="color:var(--text-muted);"></i> 日期：<strong>${data.date}</strong></div>
-                <div><i class="far fa-clock" style="color:var(--text-muted);"></i> 時間：<strong>${data.time}</strong></div>
-                <div style="margin-top:12px; font-size:12px; color:var(--text-muted); border-top:1px solid #e2e8f0; padding-top:8px;">票號: ${id}</div>
-            `;
-            modal.style.display = 'flex';
+            // 建立對該車票的即時監聽，以便司機掃碼後畫面自動更新
+            const ticketRef = ref(db, `tickets/${ticketId}`);
+            ticketListenerUnsubscribe = onValue(ticketRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    renderTicketDetailData(ticketId, snapshot.val());
+                }
+            });
         };
 
-        window.closeModal = function() {
-            document.getElementById('qrModal').style.display = 'none';
+        function renderTicketDetailData(id, data) {
+            const statusEl = document.getElementById('tdStatus');
+            const qrEl = document.getElementById('tdQrCode');
+            const infoEl = document.getElementById('tdInfo');
+
+            // 1. 處理狀態標籤
+            if (data.status === 'boarded') {
+                statusEl.className = 'status-badge status-boarded';
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> 狀態：已上車';
+            } else {
+                statusEl.className = 'status-badge status-pending';
+                statusEl.innerHTML = '<i class="fas fa-clock"></i> 狀態：未上車';
+            }
+
+            // 2. 處理大二維碼
+            qrEl.innerHTML = '';
+            new QRCode(qrEl, { 
+                text: id, 
+                width: 220, 
+                height: 220, 
+                colorDark : "#1e293b", 
+                colorLight : "#ffffff", 
+                correctLevel : QRCode.CorrectLevel.H 
+            });
+
+            // 3. 處理購買資訊格式
+            const d = new Date(data.purchasedAt);
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+            infoEl.innerHTML = `
+                <div style="margin-bottom: 8px;">
+                    <span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車飛地點：</span>
+                    <strong>${data.origin} 至 ${data.destination}</strong>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color:var(--text-muted);"><i class="far fa-calendar-check"></i> 乘車時間：</span>
+                    <strong>${data.date} ${data.time}</strong>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車飛價格：</span>
+                    <strong style="color:var(--primary);">HK$ ${data.price}</strong>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color:var(--text-muted);"><i class="fas fa-shopping-cart"></i> 購買日期：</span>
+                    <strong>${dateStr}</strong>
+                </div>
+                <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px dashed #cbd5e1; padding-top:10px;">
+                    訂單編號: ${id}
+                </div>
+            `;
+        }
+
+        // 測試功能：模擬司機端掃描更新 Firebase 狀態
+        window.simulateScan = async function() {
+            if(!currentViewTicketId || !currentUser) return;
+            try {
+                // 更新主資料庫狀態
+                await set(ref(db, `tickets/${currentViewTicketId}/status`), 'boarded');
+                // 同步更新使用者資料夾下的狀態
+                await set(ref(db, `users/${currentUser.userKey}/myTickets/${currentViewTicketId}/status`), 'boarded');
+                showToast("模擬掃碼成功，狀態已變更為『已上車』", "success");
+            } catch(e) {
+                showToast("狀態更新失敗", "error");
+            }
         };
 
         // 頁面載入時檢查登入狀態
