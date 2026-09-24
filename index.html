@@ -16,7 +16,6 @@
         * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text-main); padding-bottom: 80px; }
 
-        /* Toast 通知系統 */
         .toast {
             position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
             background: #1e293b; color: white; padding: 12px 24px; border-radius: 30px;
@@ -25,24 +24,34 @@
         }
         .toast.show { top: 20px; }
 
-        /* 頂部導航 */
         .header { background: var(--surface); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 10; }
         .header .brand { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        .header .logout-btn { color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; display: none; }
+        .header .logout-btn { color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
 
         .container { padding: 20px; max-width: 600px; margin: 0 auto; }
         
-        /* 封面/首頁 橫幅 */
+        /* 登入註冊專屬全螢幕佈局 */
+        #viewAuth {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--bg) 0%, #e2e8f0 100%);
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #viewAuth .auth-logo { text-align: center; margin-bottom: 25px; color: var(--primary); font-size: 28px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        #viewAuth .auth-logo i { font-size: 42px; }
+        #viewAuth .card { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: none; width: 100%; max-width: 400px; margin: 0 auto; }
+
         .hero-banner { background: linear-gradient(135deg, var(--primary) 0%, #115e59 100%); color: white; padding: 25px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.2); position: relative; overflow: hidden; }
         .hero-banner h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 700; }
         .hero-banner p { margin: 0; font-size: 14px; opacity: 0.9; }
         .hero-icon { position: absolute; right: -10px; bottom: -20px; font-size: 100px; opacity: 0.1; }
 
-        /* 卡片設計 */
         .card { background: var(--surface); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         .card-title { margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; font-weight: 600; }
 
-        /* 表單元素 */
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
         .input-group { display: flex; gap: 10px; }
@@ -57,7 +66,6 @@
 
         .price-display { font-size: 28px; font-weight: 700; color: var(--primary); text-align: center; margin: 24px 0; display: none; }
 
-        /* 按鈕設計 */
         .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
@@ -67,35 +75,29 @@
         
         .btn-small { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
-        /* 底部導航欄 */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; display: none; }
         .nav-item { flex: 1; text-align: center; padding: 12px 0; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
         .nav-item i { display: block; font-size: 20px; margin-bottom: 4px; transition: transform 0.2s; }
         .nav-item.active i { transform: translateY(-2px); }
 
-        /* 列表設計 */
         .list-item { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
         .list-info { font-size: 14px; }
         .list-info strong { display: block; font-size: 16px; margin-bottom: 4px; color: var(--text-main); }
         .list-info span { color: var(--text-muted); }
         
-        /* 身份資料展示 */
         .profile-data { background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 20px; }
         .profile-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; }
         .profile-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
         .profile-label { color: var(--text-muted); }
         .profile-val { font-weight: 600; color: var(--text-main); }
 
-        /* 空狀態 */
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         .empty-state i { font-size: 48px; color: #cbd5e1; margin-bottom: 16px; }
 
-        /* 載入中動畫 */
         .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 新增：完整車票詳情視圖樣式 */
         .ticket-detail-wrapper { text-align: center; padding: 25px 20px; }
         .status-badge { display: inline-block; padding: 8px 20px; border-radius: 30px; font-size: 16px; font-weight: 700; color: white; margin: 15px 0 25px 0; letter-spacing: 1px; }
         .status-pending { background-color: var(--primary); box-shadow: 0 4px 10px rgba(15, 118, 110, 0.3); }
@@ -110,22 +112,28 @@
     <!-- Toast 通知 -->
     <div id="toastBox" class="toast"></div>
 
-    <div class="header">
+    <!-- 將主導航列預設為隱藏，等登入後才顯示 -->
+    <div class="header" id="appHeader" style="display: none;">
         <div class="brand"><i class="fas fa-bus-alt"></i> 智能客運</div>
-        <button class="logout-btn" id="btnLogout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
     </div>
 
-    <!-- 視圖：登入 / 註冊 -->
-    <div class="container" id="viewAuth">
+    <!-- 視圖：登入 / 註冊 (全螢幕獨立視圖) -->
+    <div id="viewAuth">
+        <div class="auth-logo">
+            <i class="fas fa-bus-alt"></i>
+            <div>智能客運系統</div>
+        </div>
+
         <div class="card" id="loginBox">
-            <h2 class="card-title"><i class="fas fa-sign-in-alt"></i> 系統登入</h2>
+            <h2 class="card-title" style="justify-content: center; font-size: 18px; border-bottom: none;"><i class="fas fa-sign-in-alt"></i> 會員登入</h2>
             <div class="form-group">
                 <label>手提電話</label>
                 <div class="input-group">
-                    <select id="loginRegion" style="width: 120px;">
+                    <select id="loginRegion" style="width: 130px;">
                         <option value="+86">中國 (+86)</option>
-                        <option value="+852" selected>中國香港 (+852)</option>
-                        <option value="+853">中國澳門 (+853)</option>
+                        <option value="+852" selected>香港 (+852)</option>
+                        <option value="+853">澳門 (+853)</option>
                     </select>
                     <input type="tel" id="loginPhone" placeholder="輸入電話號碼">
                 </div>
@@ -139,7 +147,7 @@
         </div>
 
         <div class="card" id="registerBox" style="display: none;">
-            <h2 class="card-title"><i class="fas fa-user-plus"></i> 註冊新帳號</h2>
+            <h2 class="card-title" style="justify-content: center; font-size: 18px; border-bottom: none;"><i class="fas fa-user-plus"></i> 註冊新帳號</h2>
             <div class="form-group">
                 <label>真實名稱</label>
                 <input type="text" id="regName" placeholder="例如: 陳大文">
@@ -147,10 +155,10 @@
             <div class="form-group">
                 <label>手提電話</label>
                 <div class="input-group">
-                    <select id="regRegion" style="width: 120px;">
+                    <select id="regRegion" style="width: 130px;">
                         <option value="+86">中國 (+86)</option>
-                        <option value="+852" selected>中國香港 (+852)</option>
-                        <option value="+853">中國澳門 (+853)</option>
+                        <option value="+852" selected>香港 (+852)</option>
+                        <option value="+853">澳門 (+853)</option>
                     </select>
                     <input type="tel" id="regPhone" placeholder="輸入電話號碼">
                 </div>
@@ -172,6 +180,8 @@
         </div>
     </div>
 
+    <!-- 以下為應用內部視圖 -->
+    
     <!-- 視圖：首頁購票 -->
     <div class="container" id="viewHome" style="display: none;">
         <div class="hero-banner">
@@ -337,8 +347,6 @@
         let currentUser = null;
         let allSchedules = [];
         let currentSelectedSchedule = null;
-        
-        // 記錄車票詳情即時監聽器
         let ticketListenerUnsubscribe = null;
         let currentViewTicketId = null;
 
@@ -353,7 +361,6 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // ================= 身份驗證 =================
         window.toggleAuth = function(mode) {
             document.getElementById('loginBox').style.display = mode === 'login' ? 'block' : 'none';
             document.getElementById('registerBox').style.display = mode === 'register' ? 'block' : 'none';
@@ -362,7 +369,8 @@
         window.handleRegister = async function() {
             const name = document.getElementById('regName').value.trim();
             const region = document.getElementById('regRegion').value;
-            const phone = document.getElementById('regPhone').value.trim();
+            // 【修復】移除電話號碼中可能包含的空白字元
+            const phone = document.getElementById('regPhone').value.trim().replace(/\s+/g, '');
             const dob = document.getElementById('regDob').value;
             const nat = document.getElementById('regNationality').value.trim();
             const pw = document.getElementById('regPassword').value;
@@ -371,9 +379,10 @@
                 showToast("請填寫所有註冊資料", "error"); return;
             }
 
-            const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            // 【修復】優化正則表達式，允許包含特殊符號，更貼近真實情境
+            const pwRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
             if(!pwRegex.test(pw)) {
-                showToast("密碼必須為 8 位或以上，且包含英文及數字", "error"); return;
+                showToast("密碼必須為 8 位或以上，且包含至少一個英文及數字", "error"); return;
             }
 
             const userKey = (region + phone).replace(/\+/g, '');
@@ -398,7 +407,8 @@
 
         window.handleLogin = async function() {
             const region = document.getElementById('loginRegion').value;
-            const phone = document.getElementById('loginPhone').value.trim();
+            // 【修復】移除電話號碼中可能包含的空白字元
+            const phone = document.getElementById('loginPhone').value.trim().replace(/\s+/g, '');
             const pw = document.getElementById('loginPassword').value;
 
             if(!phone || !pw) { showToast("請輸入電話與密碼", "error"); return; }
@@ -435,17 +445,18 @@
             if(userData) {
                 currentUser = JSON.parse(userData);
                 document.getElementById('viewAuth').style.display = 'none';
+                
+                // 【修復】登入後才顯示頂部標題和底部導航
+                document.getElementById('appHeader').style.display = 'flex';
                 document.getElementById('bottomNav').style.display = 'flex';
-                document.getElementById('btnLogout').style.display = 'block';
+                
                 document.getElementById('welcomeText').textContent = `歡迎回來，${currentUser.name}`;
                 switchView('home');
                 startSchedulesListener();
             }
         }
 
-        // ================= 導航控制 =================
         window.switchView = function(view) {
-            // 清理舊的車票監聽器（如果離開詳情頁）
             if (view !== 'ticketDetail' && ticketListenerUnsubscribe) {
                 ticketListenerUnsubscribe();
                 ticketListenerUnsubscribe = null;
@@ -465,7 +476,6 @@
             window.scrollTo(0, 0);
         };
 
-        // ================= 個人資料與遊客 =================
         window.renderProfile = function() {
             document.getElementById('profileDataBox').innerHTML = `
                 <div class="profile-row"><span class="profile-label">姓名</span><span class="profile-val">${currentUser.name}</span></div>
@@ -571,7 +581,6 @@
             });
         }
 
-        // ================= 購票邏輯 =================
         function startSchedulesListener() {
             onValue(ref(db, 'schedules'), (snapshot) => {
                 if (snapshot.exists()) {
@@ -679,14 +688,13 @@
                 date: currentSelectedSchedule.date,
                 time: currentSelectedSchedule.time,
                 price: currentSelectedSchedule.price,
-                status: 'pending', // 初始化狀態為未上車
+                status: 'pending',
                 purchasedAt: Date.now(),
                 buyerName: currentUser.name,
                 buyerPhone: currentUser.phone
             };
 
             try {
-                // 寫入全局與個人節點
                 await set(ref(db, `tickets/${ticketId}`), ticketData);
                 await set(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`), ticketData);
 
@@ -695,11 +703,9 @@
                 
                 showToast("購票成功！", "success");
                 
-                // 清空選項
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
                 document.getElementById('selOrigin').value = "";
                 
-                // 進入完整車票詳情頁面
                 openTicketDetail(ticketId);
 
             } catch(e) {
@@ -743,12 +749,10 @@
             });
         };
 
-        // ================= 完整車票視圖與即時狀態 =================
         window.openTicketDetail = function(ticketId) {
             switchView('ticketDetail');
             currentViewTicketId = ticketId;
 
-            // 建立對該車票的即時監聽，以便司機掃碼後畫面自動更新
             const ticketRef = ref(db, `tickets/${ticketId}`);
             ticketListenerUnsubscribe = onValue(ticketRef, (snapshot) => {
                 if (snapshot.exists()) {
@@ -762,7 +766,6 @@
             const qrEl = document.getElementById('tdQrCode');
             const infoEl = document.getElementById('tdInfo');
 
-            // 1. 處理狀態標籤
             if (data.status === 'boarded') {
                 statusEl.className = 'status-badge status-boarded';
                 statusEl.innerHTML = '<i class="fas fa-check-circle"></i> 狀態：已上車';
@@ -771,7 +774,6 @@
                 statusEl.innerHTML = '<i class="fas fa-clock"></i> 狀態：未上車';
             }
 
-            // 2. 處理大二維碼
             qrEl.innerHTML = '';
             new QRCode(qrEl, { 
                 text: id, 
@@ -782,7 +784,6 @@
                 correctLevel : QRCode.CorrectLevel.H 
             });
 
-            // 3. 處理購買資訊格式
             const d = new Date(data.purchasedAt);
             const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
@@ -809,13 +810,10 @@
             `;
         }
 
-        // 測試功能：模擬司機端掃描更新 Firebase 狀態
         window.simulateScan = async function() {
             if(!currentViewTicketId || !currentUser) return;
             try {
-                // 更新主資料庫狀態
                 await set(ref(db, `tickets/${currentViewTicketId}/status`), 'boarded');
-                // 同步更新使用者資料夾下的狀態
                 await set(ref(db, `users/${currentUser.userKey}/myTickets/${currentViewTicketId}/status`), 'boarded');
                 showToast("模擬掃碼成功，狀態已變更為『已上車』", "success");
             } catch(e) {
@@ -823,7 +821,6 @@
             }
         };
 
-        // 頁面載入時檢查登入狀態
         window.onload = function() {
             if(sessionStorage.getItem('currentUser')) {
                 initApp();
