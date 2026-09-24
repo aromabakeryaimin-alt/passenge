@@ -94,7 +94,7 @@
         .btn-small { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; display: none; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; display: none; }
         .nav-item { flex: 1; text-align: center; padding: 12px 0; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
         .nav-item i { display: block; font-size: 20px; margin-bottom: 4px; transition: transform 0.2s; }
@@ -346,7 +346,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, child, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, get, child, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCq_8FSy5JU9-ETd1F3whQHwXC_fY1uqdo",
@@ -360,36 +360,64 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 使用 Web Crypto API 對密碼進行 SHA-256 加密
+        // ---------- 工具函數 ----------
+        // HTML 轉義：所有寫入 innerHTML 的動態資料都必須經過此函數，防止 XSS
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
         async function hashPassword(str) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(str);
+            const data = new TextEncoder().encode(str);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
+        // 使用加密安全的亂數產生車票編號（Math.random 可被預測）
+        function genTicketId() {
+            const b = new Uint8Array(6);
+            crypto.getRandomValues(b);
+            return 'TKT-' + Array.from(b, x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function calcAge(dobStr) {
+            const birth = new Date(dobStr), today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+            return age;
+        }
+
+        // ---------- 狀態 ----------
         let currentUser = null;
         let allSchedules = [];
+        let rawSchedules = [];
         let currentSelectedSchedule = null;
         let currentTicketListeners = [];
         let savedPassengersList = [];
+        let unsubSchedules = null, unsubPassengers = null, unsubMyTickets = null;
+        let scheduleTimer = null;
+        let toastTimer = null;
 
-        // 內部函數宣告 (不再直接掛載 window.xxx = function 避免內部調用失敗)
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toastBox');
             let icon = '<i class="fas fa-info-circle"></i>';
-            if(type === 'success') icon = '<i class="fas fa-check-circle" style="color:var(--success);"></i>';
-            if(type === 'error') icon = '<i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i>';
-            
-            toast.innerHTML = `${icon} ${message}`;
+            if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:var(--success);"></i>';
+            if (type === 'error') icon = '<i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i>';
+            toast.innerHTML = `${icon} ${esc(message)}`;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
+        // ---------- 登入 / 註冊 ----------
         function toggleAuth(mode) {
             document.getElementById('loginBox').style.display = mode === 'login' ? 'block' : 'none';
             document.getElementById('registerBox').style.display = mode === 'register' ? 'block' : 'none';
+        }
+
+        const makeUserKey = (region, phone) => (region + phone).replace(/\+/g, '');
+
+        function validPhone(region, phone) {
+            if (region === '+86') return /^1\d{10}$/.test(phone);
+            return /^\d{8}$/.test(phone); // 香港 / 澳門
         }
 
         async function handleRegister() {
@@ -400,30 +428,23 @@
             const nat = document.getElementById('regNationality').value.trim();
             const pw = document.getElementById('regPassword').value;
 
-            if(!name || !phone || !dob || !nat || !pw) {
-                showToast("請填寫所有註冊資料", "error"); return;
-            }
-
-            const pwRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-            if(!pwRegex.test(pw)) {
+            if (!name || !phone || !dob || !nat || !pw) { showToast("請填寫所有註冊資料", "error"); return; }
+            if (!validPhone(region, phone)) { showToast("電話號碼格式不正確", "error"); return; }
+            if (new Date(dob) > new Date()) { showToast("出生日期不能是未來日期", "error"); return; }
+            if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw)) {
                 showToast("密碼必須為 8 位或以上，且包含至少一個英文及數字", "error"); return;
             }
 
-            const hashedPassword = await hashPassword(pw);
-            const userKey = (region + phone).replace(/\+/g, '');
-            const dbRef = ref(db);
-            
             try {
-                const snapshot = await get(child(dbRef, `users/${userKey}`));
-                if(snapshot.exists()) {
-                    showToast("此電話號碼已註冊", "error"); return;
-                }
-                
-                const userData = { name, region, phone, dob, nationality: nat, passwordHash: hashedPassword, createdAt: Date.now() };
-                await set(ref(db, `users/${userKey}`), userData);
-                
+                const hashedPassword = await hashPassword(pw);
+                const userKey = makeUserKey(region, phone);
+                const snapshot = await get(child(ref(db), `users/${userKey}`));
+                if (snapshot.exists()) { showToast("此電話號碼已註冊", "error"); return; }
+
+                await set(ref(db, `users/${userKey}`), { name, region, phone, dob, nationality: nat, passwordHash: hashedPassword, createdAt: Date.now() });
                 showToast("註冊成功！請登入", "success");
                 toggleAuth('login');
+                document.getElementById('loginRegion').value = region;
                 document.getElementById('loginPhone').value = phone;
             } catch (error) {
                 showToast("註冊失敗，請檢查網絡", "error");
@@ -434,27 +455,31 @@
             const region = document.getElementById('loginRegion').value;
             const phone = document.getElementById('loginPhone').value.trim().replace(/\s+/g, '');
             const pw = document.getElementById('loginPassword').value;
+            if (!phone || !pw) { showToast("請輸入電話與密碼", "error"); return; }
 
-            if(!phone || !pw) { showToast("請輸入電話與密碼", "error"); return; }
-
-            const userKey = (region + phone).replace(/\+/g, '');
-            const hashedPassword = await hashPassword(pw);
-
+            const userKey = makeUserKey(region, phone);
             try {
+                const hashedPassword = await hashPassword(pw);
                 const snapshot = await get(child(ref(db), `users/${userKey}`));
-                if(snapshot.exists()) {
-                    const user = snapshot.val();
-                    if(user.passwordHash === hashedPassword || user.password === pw) { // 相容早期測試數據
-                        user.userKey = userKey;
-                        sessionStorage.setItem('currentUser', JSON.stringify(user));
-                        initApp();
-                        showToast("登入成功", "success");
-                    } else {
-                        showToast("密碼錯誤", "error");
-                    }
-                } else {
-                    showToast("查無此帳號", "error");
+                if (!snapshot.exists()) { showToast("查無此帳號", "error"); return; }
+
+                const user = snapshot.val();
+                // 有 passwordHash 時只比對雜湊；只有舊測試資料（無雜湊）才允許明文比對
+                const ok = user.passwordHash ? user.passwordHash === hashedPassword
+                                             : (user.password !== undefined && user.password === pw);
+                if (!ok) { showToast("密碼錯誤", "error"); return; }
+
+                // 舊明文帳號登入成功後自動升級為雜湊
+                if (!user.passwordHash) {
+                    try { await update(ref(db, `users/${userKey}`), { passwordHash: hashedPassword, password: null }); } catch (e) {}
                 }
+
+                // 不把密碼（雜湊）、乘客證件等敏感資料存入 sessionStorage
+                const { passwordHash, password, passengers, myTickets, ...safeUser } = user;
+                safeUser.userKey = userKey;
+                sessionStorage.setItem('currentUser', JSON.stringify(safeUser));
+                initApp();
+                showToast("登入成功", "success");
             } catch (error) {
                 showToast("登入失敗，請檢查網絡", "error");
             }
@@ -467,15 +492,14 @@
 
         function initApp() {
             const userData = sessionStorage.getItem('currentUser');
-            if(userData) {
-                currentUser = JSON.parse(userData);
-                document.getElementById('viewAuth').style.display = 'none';
-                document.getElementById('appHeader').style.display = 'flex';
-                document.getElementById('bottomNav').style.display = 'flex';
-                document.getElementById('welcomeText').textContent = `歡迎回來，${currentUser.name}`;
-                switchView('home');
-                startSchedulesListener();
-            }
+            if (!userData) return;
+            currentUser = JSON.parse(userData);
+            document.getElementById('viewAuth').style.display = 'none';
+            document.getElementById('appHeader').style.display = 'flex';
+            document.getElementById('bottomNav').style.display = 'flex';
+            document.getElementById('welcomeText').textContent = `歡迎回來，${currentUser.name}`;
+            switchView('home');
+            startSchedulesListener();
         }
 
         function switchView(view) {
@@ -483,27 +507,27 @@
                 currentTicketListeners.forEach(unsub => unsub());
                 currentTicketListeners = [];
             }
-
             document.getElementById('viewHome').style.display = view === 'home' ? 'block' : 'none';
             document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
             document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
             document.getElementById('viewTicketDetail').style.display = view === 'ticketDetail' ? 'block' : 'none';
-            
+
             document.getElementById('navHome').className = view === 'home' ? 'nav-item active' : 'nav-item';
             document.getElementById('navMyTickets').className = (view === 'tickets' || view === 'ticketDetail') ? 'nav-item active' : 'nav-item';
             document.getElementById('navProfile').className = view === 'profile' ? 'nav-item active' : 'nav-item';
-            
-            if(view === 'tickets') renderMyTickets();
-            if(view === 'profile') renderProfile();
+
+            if (view === 'tickets') renderMyTickets();
+            if (view === 'profile') renderProfile();
             window.scrollTo(0, 0);
         }
 
+        // ---------- 個人資料 / 遊客 ----------
         function renderProfile() {
             document.getElementById('profileDataBox').innerHTML = `
-                <div class="profile-row"><span class="profile-label">姓名</span><span class="profile-val">${currentUser.name}</span></div>
-                <div class="profile-row"><span class="profile-label">電話</span><span class="profile-val">${currentUser.region} ${currentUser.phone}</span></div>
-                <div class="profile-row"><span class="profile-label">出生日期</span><span class="profile-val">${currentUser.dob}</span></div>
-                <div class="profile-row"><span class="profile-label">國籍</span><span class="profile-val">${currentUser.nationality}</span></div>
+                <div class="profile-row"><span class="profile-label">姓名</span><span class="profile-val">${esc(currentUser.name)}</span></div>
+                <div class="profile-row"><span class="profile-label">電話</span><span class="profile-val">${esc(currentUser.region)} ${esc(currentUser.phone)}</span></div>
+                <div class="profile-row"><span class="profile-label">出生日期</span><span class="profile-val">${esc(currentUser.dob)}</span></div>
+                <div class="profile-row"><span class="profile-label">國籍</span><span class="profile-val">${esc(currentUser.nationality)}</span></div>
             `;
             loadPassengers();
         }
@@ -513,100 +537,80 @@
             const fieldMain = document.getElementById('fieldMainId');
             const fieldHr = document.getElementById('fieldHrId');
             const lblMain = document.getElementById('lblMainId');
-
             fieldMain.style.display = 'none';
             fieldHr.style.display = 'none';
-
-            if(docType) {
-                fieldMain.style.display = 'block';
-                if(docType === 'hkid') {
-                    lblMain.textContent = '香港永久性身份證號碼';
-                    fieldHr.style.display = 'block'; 
-                } else if(docType === 'cnid') {
-                    lblMain.textContent = '中國內地居民身份證號碼';
-                } else if(docType === 'cnpp') {
-                    lblMain.textContent = '中國護照號碼';
-                } else if(docType === 'hrp') {
-                    lblMain.textContent = '港澳居民來往內地通行證號碼';
-                }
-            }
+            if (!docType) return;
+            fieldMain.style.display = 'block';
+            const labels = { hkid: '香港永久性身份證號碼', cnid: '中國內地居民身份證號碼', cnpp: '中國護照號碼', hrp: '港澳居民來往內地通行證號碼' };
+            lblMain.textContent = labels[docType];
+            if (docType === 'hkid') fieldHr.style.display = 'block';
         }
 
         function checkAge() {
-            const dobInput = document.getElementById('passDob').value;
-            if(dobInput) {
-                const birthDate = new Date(dobInput);
-                const today = new Date();
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
-                document.getElementById('passAgeCheck').checked = (age >= 16);
-            }
+            const dob = document.getElementById('passDob').value;
+            if (dob) document.getElementById('passAgeCheck').checked = calcAge(dob) >= 16;
         }
 
         async function handleAddPassenger() {
             const name = document.getElementById('passName').value.trim();
             const nat = document.getElementById('passNat').value.trim();
             const docType = document.getElementById('passDocType').value;
-            const mainId = document.getElementById('passMainId').value.trim();
-            const hrId = document.getElementById('passHrId').value.trim();
+            const mainId = document.getElementById('passMainId').value.trim().toUpperCase();
+            const hrId = document.getElementById('passHrId').value.trim().toUpperCase();
             const dob = document.getElementById('passDob').value;
-            const is16 = document.getElementById('passAgeCheck').checked;
 
-            if(!name || !nat || !docType || !mainId || !dob) { showToast("請填寫所有必要的遊客資料", "error"); return; }
-            if(docType === 'hkid' && !hrId) { showToast("選擇香港身份證必須填寫通行證號碼", "error"); return; }
+            if (!name || !nat || !docType || !mainId || !dob) { showToast("請填寫所有必要的遊客資料", "error"); return; }
+            if (docType === 'hkid' && !hrId) { showToast("選擇香港身份證必須填寫通行證號碼", "error"); return; }
+            if (new Date(dob) > new Date()) { showToast("出生日期不能是未來日期", "error"); return; }
+            // 以出生日期實際計算年齡，不再只信任可被手動勾選的核取方塊
+            if (calcAge(dob) < 16 || !document.getElementById('passAgeCheck').checked) {
+                showToast("旅客必須年滿 16 歲或以上", "error"); return;
+            }
+            if (savedPassengersList.some(p => p.mainId === mainId && p.docType === docType)) {
+                showToast("此證件的遊客資料已存在", "error"); return;
+            }
 
-            const passengerData = { id: Date.now().toString(), name, nationality: nat, docType, mainId, hrId, dob, isAbove16: is16 };
-
+            const passengerData = { id: Date.now().toString(), name, nationality: nat, docType, mainId, hrId, dob, isAbove16: true };
             try {
-                const passRef = ref(db, `users/${currentUser.userKey}/passengers/${passengerData.id}`);
-                await set(passRef, passengerData);
+                await set(ref(db, `users/${currentUser.userKey}/passengers/${passengerData.id}`), passengerData);
                 showToast("遊客資料已儲存", "success");
-                document.getElementById('passName').value = '';
-                document.getElementById('passNat').value = '';
-                document.getElementById('passMainId').value = '';
-                document.getElementById('passHrId').value = '';
-                document.getElementById('passDob').value = '';
+                ['passName', 'passNat', 'passMainId', 'passHrId', 'passDob'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('passDocType').value = '';
                 document.getElementById('passAgeCheck').checked = false;
                 toggleIdFields();
-                loadPassengers();
             } catch (error) {
                 showToast("儲存失敗", "error");
             }
         }
 
         async function deletePassenger(id) {
-            if(confirm("確定要刪除這位遊客資料嗎？")) {
-                try {
-                    await remove(ref(db, `users/${currentUser.userKey}/passengers/${id}`));
-                    showToast("遊客資料已刪除", "success");
-                } catch(e) {
-                    showToast("刪除失敗，請檢查網絡", "error");
-                }
+            if (!confirm("確定要刪除這位遊客資料嗎？")) return;
+            try {
+                await remove(ref(db, `users/${currentUser.userKey}/passengers/${id}`));
+                showToast("遊客資料已刪除", "success");
+            } catch (e) {
+                showToast("刪除失敗，請檢查網絡", "error");
             }
         }
 
         function loadPassengers() {
-            onValue(ref(db, `users/${currentUser.userKey}/passengers`), (snapshot) => {
+            if (unsubPassengers) unsubPassengers(); // 避免每次進入頁面都疊加一個監聽器
+            unsubPassengers = onValue(ref(db, `users/${currentUser.userKey}/passengers`), (snapshot) => {
                 const list = document.getElementById('passengersList');
                 if (snapshot.exists()) {
-                    const passengers = Object.values(snapshot.val());
-                    savedPassengersList = passengers;
-                    list.innerHTML = passengers.map(p => {
-                        const docName = p.docType === 'hkid' ? '香港身份證' : (p.docType === 'cnid' ? '內地身份證' : (p.docType === 'cnpp' ? '中國護照' : '回鄉證'));
-                        return `
+                    savedPassengersList = Object.values(snapshot.val());
+                    const docNames = { hkid: '香港身份證', cnid: '內地身份證', cnpp: '中國護照', hrp: '回鄉證' };
+                    list.innerHTML = savedPassengersList.map(p => `
                         <div class="list-item">
                             <div class="list-info">
-                                <strong><i class="fas fa-user-tag"></i> ${p.name}</strong>
-                                <span>${p.nationality} | ${docName}: ${p.mainId}</span>
-                                ${p.docType === 'hkid' ? `<br><span>通行證: ${p.hrId}</span>` : ''}
+                                <strong><i class="fas fa-user-tag"></i> ${esc(p.name)}</strong>
+                                <span>${esc(p.nationality)} | ${esc(docNames[p.docType] || '證件')}: ${esc(p.mainId)}</span>
+                                ${p.docType === 'hkid' ? `<br><span>通行證: ${esc(p.hrId)}</span>` : ''}
                             </div>
-                            <button class="btn-small" style="background: var(--danger);" onclick="window.deletePassenger('${p.id}')">
+                            <button class="btn-small" style="background: var(--danger);" onclick="window.deletePassenger('${esc(p.id)}')">
                                 <i class="fas fa-trash"></i>
                             </button>
-                        </div>`;
-                    }).join('');
+                        </div>`).join('');
                 } else {
                     savedPassengersList = [];
                     list.innerHTML = `<div class="empty-state" style="padding: 20px;"><i class="fas fa-user-slash" style="font-size:32px;"></i><p style="font-size:14px;">尚無遊客資料</p></div>`;
@@ -614,30 +618,32 @@
             });
         }
 
+        // ---------- 班次選擇 ----------
+        function applyScheduleFilter() {
+            const now = new Date();
+            allSchedules = rawSchedules.filter(s => s && s.date && s.time && new Date(`${s.date}T${s.time}:00`) > now);
+            if (allSchedules.length === 0) {
+                document.getElementById('selOrigin').innerHTML = '<option value="">目前暫無可購買班次</option>';
+                resetDropdowns(['selDest', 'selDate', 'selTime']);
+            } else {
+                updateOrigins();
+            }
+        }
+
         function startSchedulesListener() {
-            onValue(ref(db, 'schedules'), (snapshot) => {
-                if (snapshot.exists()) {
-                    const now = new Date();
-                    allSchedules = Object.values(snapshot.val()).filter(s => {
-                        const scheduleDateTime = new Date(`${s.date}T${s.time}:00`);
-                        return scheduleDateTime > now; 
-                    });
-                    updateOrigins(); 
-                } else {
-                    allSchedules = [];
-                    document.getElementById('selOrigin').innerHTML = '<option value="">目前暫無可購買班次</option>';
-                    resetDropdowns(['selDest', 'selDate', 'selTime']);
-                }
+            if (unsubSchedules) return; // 只監聽一次
+            unsubSchedules = onValue(ref(db, 'schedules'), (snapshot) => {
+                rawSchedules = snapshot.exists() ? Object.values(snapshot.val()) : [];
+                applyScheduleFilter();
             });
+            // 頁面開著時，每分鐘重新過濾，已開出的班次自動下架
+            scheduleTimer = setInterval(applyScheduleFilter, 60000);
         }
 
         function resetDropdowns(ids) {
             ids.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) {
-                    el.innerHTML = `<option value="">請先選擇上一項</option>`;
-                    el.disabled = true;
-                }
+                if (el) { el.innerHTML = `<option value="">請先選擇上一項</option>`; el.disabled = true; }
             });
             resetPassengerSelection();
         }
@@ -646,63 +652,64 @@
 
         function updateOrigins() {
             const originSel = document.getElementById('selOrigin');
-            const currentVal = originSel.value; 
+            const currentVal = originSel.value;
             const origins = getUnique(allSchedules, 'origin');
-            originSel.innerHTML = '<option value="">請選擇出發地</option>' + origins.map(o => `<option value="${o}">${o}</option>`).join('');
-            
-            if(origins.includes(currentVal)) { 
-                originSel.value = currentVal; 
-                updateDestinations(true); 
-            } else { 
+            originSel.innerHTML = '<option value="">請選擇出發地</option>' + origins.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+            if (origins.includes(currentVal)) {
+                originSel.value = currentVal;
+                updateDestinations(true);
+            } else {
                 originSel.value = "";
-                resetDropdowns(['selDest', 'selDate', 'selTime']); 
+                resetDropdowns(['selDest', 'selDate', 'selTime']);
             }
         }
 
         function updateDestinations(keepSelection = false) {
+            keepSelection = keepSelection === true; // 避免事件物件被當成 true
             const origin = document.getElementById('selOrigin').value;
             const destSel = document.getElementById('selDest');
-            if(!origin) { resetDropdowns(['selDest', 'selDate', 'selTime']); return; }
+            if (!origin) { resetDropdowns(['selDest', 'selDate', 'selTime']); return; }
 
             const currentVal = destSel.value;
             const dests = getUnique(allSchedules.filter(s => s.origin === origin), 'destination');
-            destSel.innerHTML = '<option value="">請選擇目的地</option>' + dests.map(d => `<option value="${d}">${d}</option>`).join('');
+            destSel.innerHTML = '<option value="">請選擇目的地</option>' + dests.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
             destSel.disabled = false;
 
-            if(keepSelection && dests.includes(currentVal)) { destSel.value = currentVal; updateDates(true); } 
+            if (keepSelection && dests.includes(currentVal)) { destSel.value = currentVal; updateDates(true); }
             else { resetDropdowns(['selDate', 'selTime']); }
         }
 
         function updateDates(keepSelection = false) {
+            keepSelection = keepSelection === true;
             const origin = document.getElementById('selOrigin').value;
             const dest = document.getElementById('selDest').value;
             const dateSel = document.getElementById('selDate');
-            if(!dest) { resetDropdowns(['selDate', 'selTime']); return; }
+            if (!dest) { resetDropdowns(['selDate', 'selTime']); return; }
 
             const currentVal = dateSel.value;
-            const dates = getUnique(allSchedules.filter(s => s.origin === origin && s.destination === dest), 'date');
-            dates.sort((a,b) => new Date(a) - new Date(b));
-            dateSel.innerHTML = '<option value="">請選擇乘車日期</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
+            const dates = getUnique(allSchedules.filter(s => s.origin === origin && s.destination === dest), 'date').sort();
+            dateSel.innerHTML = '<option value="">請選擇乘車日期</option>' + dates.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
             dateSel.disabled = false;
 
-            if(keepSelection && dates.includes(currentVal)) { dateSel.value = currentVal; updateTimes(true); } 
+            if (keepSelection && dates.includes(currentVal)) { dateSel.value = currentVal; updateTimes(true); }
             else { resetDropdowns(['selTime']); }
         }
 
         function updateTimes(keepSelection = false) {
+            keepSelection = keepSelection === true;
             const origin = document.getElementById('selOrigin').value;
             const dest = document.getElementById('selDest').value;
             const date = document.getElementById('selDate').value;
             const timeSel = document.getElementById('selTime');
-            if(!date) { resetDropdowns(['selTime']); return; }
+            if (!date) { resetDropdowns(['selTime']); return; }
 
             const currentVal = timeSel.value;
-            const times = getUnique(allSchedules.filter(s => s.origin === origin && s.destination === dest && s.date === date), 'time');
-            times.sort();
-            timeSel.innerHTML = '<option value="">請選擇班次</option>' + times.map(t => `<option value="${t}">${t}</option>`).join('');
+            const times = getUnique(allSchedules.filter(s => s.origin === origin && s.destination === dest && s.date === date), 'time')
+                .sort((a, b) => String(a).padStart(5, '0').localeCompare(String(b).padStart(5, '0')));
+            timeSel.innerHTML = '<option value="">請選擇班次</option>' + times.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
             timeSel.disabled = false;
 
-            if(keepSelection && times.includes(currentVal)) { timeSel.value = currentVal; handleTimeChange(); } 
+            if (keepSelection && times.includes(currentVal)) { timeSel.value = currentVal; handleTimeChange(); }
             else { resetPassengerSelection(); }
         }
 
@@ -711,32 +718,36 @@
             const dest = document.getElementById('selDest').value;
             const date = document.getElementById('selDate').value;
             const time = document.getElementById('selTime').value;
-            currentSelectedSchedule = allSchedules.find(s => s.origin === origin && s.destination === dest && s.date === date && s.time === time);
+            const found = allSchedules.find(s => s.origin === origin && s.destination === dest && s.date === date && s.time === time);
 
-            if(currentSelectedSchedule) {
-                loadPassengerSelectionOptions();
+            if (found) {
+                // 班次資料更新（如價格變動）時保留已勾選的乘客
+                const keep = (currentSelectedSchedule && currentSelectedSchedule.id === found.id)
+                    ? new Set(Array.from(document.querySelectorAll('.pass-cb:checked')).map(cb => cb.value))
+                    : new Set();
+                currentSelectedSchedule = found;
+                loadPassengerSelectionOptions(keep);
             } else {
                 resetPassengerSelection();
             }
         }
 
-        function loadPassengerSelectionOptions() {
+        function loadPassengerSelectionOptions(keep = new Set()) {
             const group = document.getElementById('passengerSelectGroup');
             const listDiv = document.getElementById('passengerCheckboxesList');
             group.style.display = 'block';
 
             get(child(ref(db), `users/${currentUser.userKey}/passengers`)).then((snapshot) => {
-                if(snapshot.exists()) {
+                if (snapshot.exists()) {
                     savedPassengersList = Object.values(snapshot.val());
                     listDiv.innerHTML = savedPassengersList.map(p => `
                         <label style="display:flex; align-items:center; gap:12px; padding:12px; background:#f8fafc; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; cursor:pointer;">
-                            <input type="checkbox" class="pass-cb" value="${p.id}" onchange="window.handlePassengerCheck(this)" style="width:20px; height:20px; accent-color:var(--primary);">
+                            <input type="checkbox" class="pass-cb" value="${esc(p.id)}" ${keep.has(p.id) ? 'checked' : ''} onchange="window.handlePassengerCheck(this)" style="width:20px; height:20px; accent-color:var(--primary);">
                             <div>
-                                <strong style="font-size:15px; display:block; color:var(--text-main);">${p.name}</strong>
-                                <span style="font-size:12px; color:var(--text-muted);">${p.nationality} | ${p.mainId}</span>
+                                <strong style="font-size:15px; display:block; color:var(--text-main);">${esc(p.name)}</strong>
+                                <span style="font-size:12px; color:var(--text-muted);">${esc(p.nationality)} | ${esc(p.mainId)}</span>
                             </div>
-                        </label>
-                    `).join('');
+                        </label>`).join('');
                 } else {
                     savedPassengersList = [];
                     listDiv.innerHTML = `
@@ -745,12 +756,11 @@
                         </div>`;
                 }
                 updateTotalPrice();
-            });
+            }).catch(() => showToast("載入乘客資料失敗，請檢查網絡", "error"));
         }
 
         function handlePassengerCheck(cb) {
-            const checkedCount = document.querySelectorAll('.pass-cb:checked').length;
-            if(checkedCount > 6) {
+            if (document.querySelectorAll('.pass-cb:checked').length > 6) {
                 cb.checked = false;
                 showToast("最多只能選擇 6 位乘客購票", "error");
                 return;
@@ -759,13 +769,11 @@
         }
 
         function updateTotalPrice() {
-            const checkedBoxes = document.querySelectorAll('.pass-cb:checked');
-            const count = checkedBoxes.length;
+            const count = document.querySelectorAll('.pass-cb:checked').length;
             const pd = document.getElementById('priceDisplay');
             const btn = document.getElementById('btnBuy');
-
-            if(count > 0 && currentSelectedSchedule) {
-                const total = currentSelectedSchedule.price * count;
+            if (count > 0 && currentSelectedSchedule) {
+                const total = Number(currentSelectedSchedule.price) * count;
                 pd.innerHTML = `HK$ ${total} <span style="font-size:14px; font-weight:normal; color:var(--text-muted);">(${count}位乘客)</span>`;
                 pd.style.display = 'block';
                 btn.disabled = false;
@@ -776,124 +784,119 @@
         }
 
         function resetPassengerSelection() {
+            currentSelectedSchedule = null; // 避免班次已下架仍殘留舊選擇
             document.getElementById('passengerSelectGroup').style.display = 'none';
             document.getElementById('passengerCheckboxesList').innerHTML = '';
-            document.getElementById('priceDisplay').style.display = 'none'; 
+            document.getElementById('priceDisplay').style.display = 'none';
             document.getElementById('btnBuy').disabled = true;
         }
 
+        // ---------- 購票 ----------
         async function purchaseTicket() {
             const checkedBoxes = document.querySelectorAll('.pass-cb:checked');
-            if(checkedBoxes.length === 0) {
-                showToast("請至少選擇一位乘車乘客", "error"); return;
+            if (checkedBoxes.length === 0) { showToast("請至少選擇一位乘車乘客", "error"); return; }
+            if (!currentSelectedSchedule) { showToast("班次已下架，請重新選擇", "error"); return; }
+
+            // 付款前再確認班次仍存在且未開出
+            const sch = allSchedules.find(s => s.id === currentSelectedSchedule.id);
+            if (!sch || new Date(`${sch.date}T${sch.time}:00`) <= new Date()) {
+                showToast("此班次已下架或已開出，請重新選擇", "error"); return;
             }
 
             const btn = document.getElementById('btnBuy');
+            const btnHtml = '<i class="fas fa-credit-card"></i> 確認付款並取票';
             btn.innerHTML = '<div class="loader"></div>';
             btn.disabled = true;
 
-            const selectedPassengers = Array.from(checkedBoxes).map(cb => 
-                savedPassengersList.find(p => p.id === cb.value)
-            );
+            const selectedPassengers = Array.from(checkedBoxes).map(cb => savedPassengersList.find(p => p.id === cb.value)).filter(Boolean);
+            const ids = [];
+            const updates = {};
 
-            let generatedTicketIds = [];
+            selectedPassengers.forEach(pass => {
+                const ticketId = genTicketId();
+                const ticketData = {
+                    ticketId,
+                    origin: sch.origin, destination: sch.destination, date: sch.date, time: sch.time,
+                    price: Number(sch.price),
+                    status: 'pending',
+                    purchasedAt: Date.now(),
+                    buyerName: currentUser.name,
+                    buyerPhone: currentUser.phone,
+                    buyerRegion: currentUser.region,
+                    buyerKey: currentUser.userKey, // 供驗票端直接同步乘客車票副本
+                    passengerName: pass.name,
+                    passengerDocId: pass.mainId,
+                    passengerNat: pass.nationality
+                };
+                updates[`tickets/${ticketId}`] = ticketData;
+                updates[`users/${currentUser.userKey}/myTickets/${ticketId}`] = ticketData;
+                ids.push(ticketId);
+            });
 
             try {
-                for(let pass of selectedPassengers) {
-                    const ticketId = 'TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    const ticketData = {
-                        ticketId: ticketId,
-                        origin: currentSelectedSchedule.origin,
-                        destination: currentSelectedSchedule.destination,
-                        date: currentSelectedSchedule.date,
-                        time: currentSelectedSchedule.time,
-                        price: currentSelectedSchedule.price,
-                        status: 'pending',
-                        purchasedAt: Date.now(),
-                        buyerName: currentUser.name,
-                        buyerPhone: currentUser.phone,
-                        buyerRegion: currentUser.region,
-                        passengerName: pass.name,
-                        passengerDocId: pass.mainId,
-                        passengerNat: pass.nationality
-                    };
-
-                    await set(ref(db, `tickets/${ticketId}`), ticketData);
-                    await set(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`), ticketData);
-                    generatedTicketIds.push(ticketId);
-                }
-
-                btn.innerHTML = '<i class="fas fa-credit-card"></i> 確認付款並取票';
-                btn.disabled = false;
-                
-                showToast(`成功購買 ${generatedTicketIds.length} 張車票！`, "success");
-                resetDropdowns(['selDest', 'selDate', 'selTime']);
+                await update(ref(db), updates); // 一次原子寫入：要麼全部成功，要麼全部失敗
+                showToast(`成功購買 ${ids.length} 張車票！`, "success");
                 document.getElementById('selOrigin').value = "";
-                openMultipleTicketDetail(generatedTicketIds);
-
-            } catch(e) {
+                resetDropdowns(['selDest', 'selDate', 'selTime']);
+                openMultipleTicketDetail(ids);
+            } catch (e) {
                 showToast("購票失敗，請檢查網絡連線", "error");
-                btn.innerHTML = '<i class="fas fa-credit-card"></i> 確認付款並取票';
-                btn.disabled = false;
+            } finally {
+                btn.innerHTML = btnHtml;
+                btn.disabled = document.querySelectorAll('.pass-cb:checked').length === 0;
             }
         }
 
+        // 只刪除乘客自己的車票副本；總表 tickets 保留，作為驗票及已售統計的紀錄
         async function deleteTicket(ticketId) {
-            if(confirm("確定刪除此車票紀錄嗎？")) {
-                try {
-                    await remove(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`));
-                    await remove(ref(db, `tickets/${ticketId}`));
-                    showToast("車票紀錄已完全刪除", "success");
-                    switchView('tickets');
-                } catch(e) {
-                    showToast("刪除失敗，請檢查網路", "error");
-                }
+            if (!confirm("確定刪除此車票紀錄嗎？")) return;
+            try {
+                await remove(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`));
+                showToast("車票紀錄已刪除", "success");
+                switchView('tickets');
+            } catch (e) {
+                showToast("刪除失敗，請檢查網路", "error");
             }
         }
 
         function renderMyTickets() {
+            if (unsubMyTickets) unsubMyTickets();
             const list = document.getElementById('myTicketsList');
-            onValue(ref(db, `users/${currentUser.userKey}/myTickets`), (snapshot) => {
-                if (snapshot.exists()) {
-                    const myTickets = Object.values(snapshot.val());
-                    myTickets.sort((a,b) => b.purchasedAt - a.purchasedAt);
-
-                    list.innerHTML = myTickets.map(t => {
-                        const isBoarded = t.status === 'boarded';
-                        const statusColor = isBoarded ? 'var(--text-muted)' : 'var(--primary)';
-                        const statusText = isBoarded ? '已上車' : '未上車';
-                        
-                        return `
-                        <div class="list-item" style="align-items: center; cursor: pointer;" onclick="window.openMultipleTicketDetail(['${t.ticketId}'])">
-                            <div class="list-info" style="flex: 1;">
-                                <strong style="font-size: 16px;"><i class="fas fa-route"></i> ${t.origin} - ${t.destination}</strong>
-                                <span><i class="fas fa-user"></i> 乘客: ${t.passengerName || t.buyerName}</span><br>
-                                <span><i class="far fa-calendar-alt"></i> ${t.date} | <i class="far fa-clock"></i> ${t.time}</span>
-                                <div style="color:${statusColor}; font-weight:600; font-size:12px; margin-top:6px;">
-                                    ${statusText}
-                                </div>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <button class="btn-small" style="background: white; color: var(--primary); border: 1px solid var(--primary);">
-                                    <i class="fas fa-search"></i> 詳情
-                                </button>
-                                ${isBoarded ? `
-                                <button class="btn-small" style="background: var(--danger); border: 1px solid var(--danger);" onclick="event.stopPropagation(); window.deleteTicket('${t.ticketId}')">
-                                    <i class="fas fa-trash"></i> 刪除
-                                </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `}).join('');
-                } else {
+            unsubMyTickets = onValue(ref(db, `users/${currentUser.userKey}/myTickets`), (snapshot) => {
+                if (!snapshot.exists()) {
                     list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>目前沒有已購買的車票</p></div>`;
+                    return;
                 }
+                const myTickets = Object.values(snapshot.val()).sort((a, b) => b.purchasedAt - a.purchasedAt);
+                list.innerHTML = myTickets.map(t => {
+                    const isBoarded = t.status === 'boarded';
+                    const statusColor = isBoarded ? 'var(--text-muted)' : 'var(--primary)';
+                    const id = esc(t.ticketId);
+                    return `
+                    <div class="list-item" style="align-items: center; cursor: pointer;" onclick="window.openMultipleTicketDetail(['${id}'])">
+                        <div class="list-info" style="flex: 1;">
+                            <strong style="font-size: 16px;"><i class="fas fa-route"></i> ${esc(t.origin)} - ${esc(t.destination)}</strong>
+                            <span><i class="fas fa-user"></i> 乘客: ${esc(t.passengerName || t.buyerName)}</span><br>
+                            <span><i class="far fa-calendar-alt"></i> ${esc(t.date)} | <i class="far fa-clock"></i> ${esc(t.time)}</span>
+                            <div style="color:${statusColor}; font-weight:600; font-size:12px; margin-top:6px;">${isBoarded ? '已上車' : '未上車'}</div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <button class="btn-small" style="background: white; color: var(--primary); border: 1px solid var(--primary);">
+                                <i class="fas fa-search"></i> 詳情
+                            </button>
+                            ${isBoarded ? `
+                            <button class="btn-small" style="background: var(--danger); border: 1px solid var(--danger);" onclick="event.stopPropagation(); window.deleteTicket('${id}')">
+                                <i class="fas fa-trash"></i> 刪除
+                            </button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
             });
         }
 
         function openMultipleTicketDetail(ticketIds) {
             switchView('ticketDetail');
-            
+
             const carousel = document.getElementById('ticketCarousel');
             const dots = document.getElementById('carouselDots');
             carousel.innerHTML = '';
@@ -906,40 +909,32 @@
                 const slide = document.createElement('div');
                 slide.className = 'ticket-slide';
                 slide.innerHTML = `
-                    <div id="tdStatus-${id}" class="status-badge status-pending">
-                        <i class="fas fa-clock"></i> 狀態：未上車
-                    </div>
-                    <div class="qr-large" id="tdQrCode-${id}"></div>
-                    <div class="ticket-detail-info" id="tdInfo-${id}">載入中...</div>
-                    <div id="tdDelete-${id}" style="display:none; margin-top:15px;">
-                        <button class="btn-danger" style="width:100%;" onclick="window.deleteTicket('${id}')">
+                    <div id="tdStatus-${esc(id)}" class="status-badge status-pending"><i class="fas fa-clock"></i> 狀態：未上車</div>
+                    <div class="qr-large" id="tdQrCode-${esc(id)}"></div>
+                    <div class="ticket-detail-info" id="tdInfo-${esc(id)}">載入中...</div>
+                    <div id="tdDelete-${esc(id)}" style="display:none; margin-top:15px;">
+                        <button class="btn-danger" style="width:100%;" onclick="window.deleteTicket('${esc(id)}')">
                             <i class="fas fa-trash-alt"></i> 刪除此車票紀錄
                         </button>
-                    </div>
-                `;
+                    </div>`;
                 carousel.appendChild(slide);
 
                 const dot = document.createElement('div');
-                dot.style = `width: 8px; height: 8px; border-radius: 50%; background: ${index === 0 ? 'var(--primary)' : '#cbd5e1'};`;
+                dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${index === 0 ? 'var(--primary)' : '#cbd5e1'};`;
                 dots.appendChild(dot);
 
-                const ticketRef = ref(db, `tickets/${id}`);
-                const unsub = onValue(ticketRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        renderSingleTicketData(id, snapshot.val());
-                    }
+                const unsub = onValue(ref(db, `tickets/${id}`), (snapshot) => {
+                    if (snapshot.exists()) renderSingleTicketData(id, snapshot.val());
+                    else document.getElementById(`tdInfo-${id}`).textContent = '找不到此車票資料';
                 });
                 currentTicketListeners.push(unsub);
             });
 
-            carousel.addEventListener('scroll', () => {
-                const scrollPos = carousel.scrollLeft;
-                const width = carousel.offsetWidth;
-                const currentIndex = Math.round(scrollPos / width);
-                Array.from(dots.children).forEach((d, i) => {
-                    d.style.background = (i === currentIndex) ? 'var(--primary)' : '#cbd5e1';
-                });
-            });
+            // 用 onscroll 賦值，避免重複開啟時疊加多個監聽器
+            carousel.onscroll = () => {
+                const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                Array.from(dots.children).forEach((d, i) => d.style.background = (i === idx) ? 'var(--primary)' : '#cbd5e1');
+            };
         }
 
         function renderSingleTicketData(id, data) {
@@ -947,6 +942,7 @@
             const qrEl = document.getElementById(`tdQrCode-${id}`);
             const infoEl = document.getElementById(`tdInfo-${id}`);
             const delEl = document.getElementById(`tdDelete-${id}`);
+            if (!statusEl) return;
 
             if (data.status === 'boarded') {
                 statusEl.className = 'status-badge status-boarded';
@@ -958,31 +954,28 @@
                 delEl.style.display = 'none';
             }
 
-            qrEl.innerHTML = '';
-            new QRCode(qrEl, { 
-                text: id, 
-                width: 220, 
-                height: 220, 
-                colorDark : "#1e293b", 
-                colorLight : "#ffffff", 
-                correctLevel : QRCode.CorrectLevel.H 
-            });
+            // QR Code 內容不變，只需繪製一次
+            if (!qrEl.dataset.drawn) {
+                new QRCode(qrEl, { text: id, width: 220, height: 220, colorDark: "#1e293b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+                qrEl.dataset.drawn = '1';
+            }
 
             const d = new Date(data.purchasedAt);
-            const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const p2 = (n) => String(n).padStart(2, '0');
+            const dateStr = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
 
             infoEl.innerHTML = `
-                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-user"></i> 乘車旅客：</span><strong>${data.passengerName || data.buyerName}</strong></div>
-                ${data.passengerDocId ? `<div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-id-card"></i> 證件號碼：</span><strong>${data.passengerDocId}</strong></div>` : ''}
-                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車票地點：</span><strong>${data.origin} 至 ${data.destination}</strong></div>
-                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="far fa-calendar-check"></i> 乘車時間：</span><strong>${data.date} ${data.time}</strong></div>
-                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車票價格：</span><strong style="color:var(--primary);">HK$ ${data.price}</strong></div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-user"></i> 乘車旅客：</span><strong>${esc(data.passengerName || data.buyerName)}</strong></div>
+                ${data.passengerDocId ? `<div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-id-card"></i> 證件號碼：</span><strong>${esc(data.passengerDocId)}</strong></div>` : ''}
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車票地點：</span><strong>${esc(data.origin)} 至 ${esc(data.destination)}</strong></div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="far fa-calendar-check"></i> 乘車時間：</span><strong>${esc(data.date)} ${esc(data.time)}</strong></div>
+                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車票價格：</span><strong style="color:var(--primary);">HK$ ${esc(data.price)}</strong></div>
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-shopping-cart"></i> 購買日期：</span><strong>${dateStr}</strong></div>
-                <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">訂單編號: ${id}</div>
+                <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">訂單編號: ${esc(id)}</div>
             `;
         }
 
-        // 將所有需要的函數統一掛載到 window 提供 HTML 調用
+        // 掛載到 window 供 HTML inline 事件調用
         Object.assign(window, {
             showToast, toggleAuth, handleRegister, handleLogin, logout,
             switchView, renderProfile, toggleIdFields, checkAge, handleAddPassenger,
@@ -991,10 +984,13 @@
             deleteTicket, renderMyTickets, openMultipleTicketDetail
         });
 
+        // Enter 鍵登入
+        ['loginPhone', 'loginPassword'].forEach(id => {
+            document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+        });
+
         window.onload = function() {
-            if(sessionStorage.getItem('currentUser')) {
-                initApp();
-            }
+            if (sessionStorage.getItem('currentUser')) initApp();
         };
     </script>
 </body>
