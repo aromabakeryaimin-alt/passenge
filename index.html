@@ -28,7 +28,7 @@
         /* 頂部導航 */
         .header { background: var(--surface); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 10; }
         .header .brand { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        .header .user-icon { width: 36px; height: 36px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; }
+        .header .logout-btn { color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; display: none; }
 
         .container { padding: 20px; max-width: 600px; margin: 0 auto; }
         
@@ -45,9 +45,15 @@
         /* 表單元素 */
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
-        select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; outline: none; background: #f8fafc; appearance: none; transition: 0.2s; }
-        select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
-        select:disabled { opacity: 0.6; background: #e2e8f0; cursor: not-allowed; }
+        .input-group { display: flex; gap: 10px; }
+        input, select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; outline: none; background: #f8fafc; transition: 0.2s; }
+        select { appearance: none; }
+        input:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
+        input:disabled, select:disabled { opacity: 0.6; background: #e2e8f0; cursor: not-allowed; }
+        
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+        .checkbox-group label { margin-bottom: 0; font-size: 14px; color: var(--danger); cursor: pointer; }
 
         .price-display { font-size: 28px; font-weight: 700; color: var(--primary); text-align: center; margin: 24px 0; display: none; }
 
@@ -55,35 +61,40 @@
         .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
+        
+        .btn-secondary { width: 100%; background: white; color: var(--primary); border: 1px solid var(--primary); padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        
+        .btn-small { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
         /* 底部導航欄 */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; display: none; }
         .nav-item { flex: 1; text-align: center; padding: 12px 0; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
         .nav-item i { display: block; font-size: 20px; margin-bottom: 4px; transition: transform 0.2s; }
         .nav-item.active i { transform: translateY(-2px); }
 
-        /* 車票列表設計 */
-        .ticket-item { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: white; transition: 0.2s; }
-        .ticket-item:hover { border-color: var(--primary); }
-        .route-info { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 6px; font-size: 15px; }
-        .route-info i { color: var(--text-muted); font-size: 12px; }
-        .time-info { font-size: 13px; color: var(--text-muted); }
-        .btn-view-qr { background: #f1f5f9; color: var(--primary); border: none; padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 12px; gap: 4px; }
-        .btn-view-qr i { font-size: 18px; }
+        /* 列表設計 */
+        .list-item { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
+        .list-info { font-size: 14px; }
+        .list-info strong { display: block; font-size: 16px; margin-bottom: 4px; color: var(--text-main); }
+        .list-info span { color: var(--text-muted); }
+        
+        /* 身份資料展示 */
+        .profile-data { background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 20px; }
+        .profile-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; }
+        .profile-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .profile-label { color: var(--text-muted); }
+        .profile-val { font-weight: 600; color: var(--text-main); }
 
         /* 空狀態 */
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         .empty-state i { font-size: 48px; color: #cbd5e1; margin-bottom: 16px; }
 
         /* QR Code 彈窗 */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
-        .modal-overlay.show { opacity: 1; }
-        .modal-card { background: white; width: 100%; max-width: 340px; padding: 30px; border-radius: 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: translateY(20px); transition: transform 0.3s; }
-        .modal-overlay.show .modal-card { transform: translateY(0); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-card { background: white; width: 100%; max-width: 340px; padding: 30px; border-radius: 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
         #qrcode { display: flex; justify-content: center; margin: 20px 0; padding: 15px; background: white; border-radius: 12px; border: 1px solid var(--border); }
         .ticket-info { text-align: left; background: #f8fafc; padding: 15px; border-radius: 12px; font-size: 14px; margin-bottom: 20px; border: 1px dashed #cbd5e1; }
-        .ticket-info strong { color: var(--text-main); }
 
         /* 載入中動畫 */
         .loader { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
@@ -97,15 +108,71 @@
 
     <div class="header">
         <div class="brand"><i class="fas fa-bus-alt"></i> 智能客運</div>
-        <div class="user-icon"><i class="fas fa-user"></i></div>
+        <button class="logout-btn" id="btnLogout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
     </div>
 
-    <!-- 頁面 1：首頁與購票 -->
-    <div class="container" id="viewHome">
-        
+    <!-- 視圖：登入 / 註冊 -->
+    <div class="container" id="viewAuth">
+        <div class="card" id="loginBox">
+            <h2 class="card-title"><i class="fas fa-sign-in-alt"></i> 系統登入</h2>
+            <div class="form-group">
+                <label>手提電話</label>
+                <div class="input-group">
+                    <select id="loginRegion" style="width: 120px;">
+                        <option value="+86">中國 (+86)</option>
+                        <option value="+852" selected>中國香港 (+852)</option>
+                        <option value="+853">中國澳門 (+853)</option>
+                    </select>
+                    <input type="tel" id="loginPhone" placeholder="輸入電話號碼">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>密碼</label>
+                <input type="password" id="loginPassword" placeholder="輸入密碼">
+            </div>
+            <button class="btn-primary" onclick="handleLogin()">登入系統</button>
+            <button class="btn-secondary" onclick="toggleAuth('register')">註冊新帳號</button>
+        </div>
+
+        <div class="card" id="registerBox" style="display: none;">
+            <h2 class="card-title"><i class="fas fa-user-plus"></i> 註冊新帳號</h2>
+            <div class="form-group">
+                <label>真實名稱</label>
+                <input type="text" id="regName" placeholder="例如: 陳大文">
+            </div>
+            <div class="form-group">
+                <label>手提電話</label>
+                <div class="input-group">
+                    <select id="regRegion" style="width: 120px;">
+                        <option value="+86">中國 (+86)</option>
+                        <option value="+852" selected>中國香港 (+852)</option>
+                        <option value="+853">中國澳門 (+853)</option>
+                    </select>
+                    <input type="tel" id="regPhone" placeholder="輸入電話號碼">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>出生年月日</label>
+                <input type="date" id="regDob">
+            </div>
+            <div class="form-group">
+                <label>國籍</label>
+                <input type="text" id="regNationality" placeholder="例如: 中國香港">
+            </div>
+            <div class="form-group">
+                <label>註冊密碼 (至少8位，須包含英文及數字)</label>
+                <input type="password" id="regPassword" placeholder="輸入符合要求的密碼">
+            </div>
+            <button class="btn-primary" onclick="handleRegister()">確認註冊</button>
+            <button class="btn-secondary" onclick="toggleAuth('login')">返回登入</button>
+        </div>
+    </div>
+
+    <!-- 視圖：首頁購票 -->
+    <div class="container" id="viewHome" style="display: none;">
         <div class="hero-banner">
             <i class="fas fa-route hero-icon"></i>
-            <h2>歡迎乘搭智能客運</h2>
+            <h2 id="welcomeText">歡迎乘搭</h2>
             <p>享受快捷、便利的無紙化乘車體驗</p>
         </div>
 
@@ -113,27 +180,19 @@
             <h2 class="card-title"><i class="fas fa-ticket-alt" style="color:var(--primary);"></i> 購買車票</h2>
             <div class="form-group">
                 <label>出發地</label>
-                <select id="selOrigin" onchange="updateDestinations()">
-                    <option value="">載入數據中...</option>
-                </select>
+                <select id="selOrigin" onchange="updateDestinations()"><option value="">載入數據中...</option></select>
             </div>
             <div class="form-group">
                 <label>目的地</label>
-                <select id="selDest" onchange="updateDates()" disabled>
-                    <option value="">請先選擇出發地</option>
-                </select>
+                <select id="selDest" onchange="updateDates()" disabled><option value="">請先選擇出發地</option></select>
             </div>
             <div class="form-group">
                 <label>乘車日期</label>
-                <select id="selDate" onchange="updateTimes()" disabled>
-                    <option value="">請先選擇目的地</option>
-                </select>
+                <select id="selDate" onchange="updateTimes()" disabled><option value="">請先選擇目的地</option></select>
             </div>
             <div class="form-group">
                 <label>班次時間</label>
-                <select id="selTime" onchange="showPrice()" disabled>
-                    <option value="">請先選擇日期</option>
-                </select>
+                <select id="selTime" onchange="showPrice()" disabled><option value="">請先選擇日期</option></select>
             </div>
 
             <div id="priceDisplay" class="price-display">HK$ 0</div>
@@ -144,17 +203,73 @@
         </div>
     </div>
 
-    <!-- 頁面 2：我的車票 -->
+    <!-- 視圖：我的車票 -->
     <div class="container" id="viewMyTickets" style="display: none;">
         <div class="card">
             <h2 class="card-title"><i class="fas fa-wallet" style="color:var(--primary);"></i> 我的車票夾</h2>
+            <div id="myTicketsList"></div>
+        </div>
+    </div>
+
+    <!-- 視圖：個人資料與遊客管理 -->
+    <div class="container" id="viewProfile" style="display: none;">
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-user-circle" style="color:var(--primary);"></i> 個人基本資料</h2>
+            <div class="profile-data" id="profileDataBox">
+                <!-- 資料由 JS 渲染 -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-users" style="color:var(--primary);"></i> 新增遊客資料</h2>
             
-            <div id="myTicketsList">
-                <div class="empty-state">
-                    <i class="fas fa-box-open"></i>
-                    <p>目前沒有已購買的車票</p>
+            <div class="form-group">
+                <label>身份證名稱 (須與證件相同)</label>
+                <input type="text" id="passName" placeholder="例如: 陳大文">
+            </div>
+            <div class="form-group">
+                <label>國籍</label>
+                <input type="text" id="passNat" placeholder="例如: 中國香港">
+            </div>
+            <div class="form-group">
+                <label>證件類型</label>
+                <select id="passDocType" onchange="toggleIdFields()">
+                    <option value="">請選擇證件類型</option>
+                    <option value="hkid">香港永久性身份證</option>
+                    <option value="cnid">中國內地居民身份證</option>
+                    <option value="cnpp">中國護照</option>
+                    <option value="hrp">港澳居民來往內地通行證</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="fieldMainId" style="display: none;">
+                <label id="lblMainId">身份證明號碼</label>
+                <input type="text" id="passMainId" placeholder="輸入證件號碼">
+            </div>
+            
+            <div class="form-group" id="fieldHrId" style="display: none;">
+                <label>港澳居民來往內地通行證號碼 (必填)</label>
+                <input type="text" id="passHrId" placeholder="輸入通行證號碼">
+            </div>
+
+            <div class="form-group">
+                <label>出生日期</label>
+                <input type="date" id="passDob" onchange="checkAge()">
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="passAgeCheck">
+                    <label for="passAgeCheck">確認：該名旅客已年滿 16 歲或以上</label>
                 </div>
             </div>
+
+            <button class="btn-primary" onclick="handleAddPassenger()"><i class="fas fa-save"></i> 儲存遊客資料</button>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-address-book" style="color:var(--primary);"></i> 已儲存遊客列表</h2>
+            <div id="passengersList"></div>
         </div>
     </div>
 
@@ -171,18 +286,21 @@
     </div>
 
     <!-- 底部導航 -->
-    <div class="bottom-nav">
+    <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" id="navHome" onclick="switchView('home')">
-            <i class="fas fa-home"></i> 首頁購票
+            <i class="fas fa-home"></i> 購票
         </div>
         <div class="nav-item" id="navMyTickets" onclick="switchView('tickets')">
-            <i class="fas fa-qrcode"></i> 我的車票
+            <i class="fas fa-qrcode"></i> 車票
+        </div>
+        <div class="nav-item" id="navProfile" onclick="switchView('profile')">
+            <i class="fas fa-user"></i> 個人資料
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCq_8FSy5JU9-ETd1F3whQHwXC_fY1uqdo",
@@ -196,32 +314,265 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        let currentUser = null;
         let allSchedules = [];
         let currentSelectedSchedule = null;
 
-        // Toast 通知功能
-        function showToast(message, type = 'info') {
+        window.showToast = function(message, type = 'info') {
             const toast = document.getElementById('toastBox');
             let icon = '<i class="fas fa-info-circle"></i>';
             if(type === 'success') icon = '<i class="fas fa-check-circle" style="color:var(--success);"></i>';
-            if(type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:var(--danger);"></i>';
+            if(type === 'error') icon = '<i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i>';
             
             toast.innerHTML = `${icon} ${message}`;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // 實時監聽班次資料表
-        onValue(ref(db, 'schedules'), (snapshot) => {
-            if (snapshot.exists()) {
-                allSchedules = Object.values(snapshot.val());
-                updateOrigins(); 
-            } else {
-                allSchedules = [];
-                document.getElementById('selOrigin').innerHTML = '<option value="">目前暫無任何班次</option>';
-                resetDropdowns(['selDest', 'selDate', 'selTime']);
+        // ================= 身份驗證 (註冊與登入) =================
+        window.toggleAuth = function(mode) {
+            document.getElementById('loginBox').style.display = mode === 'login' ? 'block' : 'none';
+            document.getElementById('registerBox').style.display = mode === 'register' ? 'block' : 'none';
+        };
+
+        window.handleRegister = async function() {
+            const name = document.getElementById('regName').value.trim();
+            const region = document.getElementById('regRegion').value;
+            const phone = document.getElementById('regPhone').value.trim();
+            const dob = document.getElementById('regDob').value;
+            const nat = document.getElementById('regNationality').value.trim();
+            const pw = document.getElementById('regPassword').value;
+
+            if(!name || !phone || !dob || !nat || !pw) {
+                showToast("請填寫所有註冊資料", "error"); return;
             }
-        });
+
+            // 驗證密碼：8位或以上，包含英文及數字
+            const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            if(!pwRegex.test(pw)) {
+                showToast("密碼必須為 8 位或以上，且包含英文及數字", "error"); return;
+            }
+
+            const userKey = (region + phone).replace(/\+/g, '');
+            const dbRef = ref(db);
+            
+            try {
+                const snapshot = await get(child(dbRef, `users/${userKey}`));
+                if(snapshot.exists()) {
+                    showToast("此電話號碼已註冊", "error"); return;
+                }
+                
+                const userData = { name, region, phone, dob, nationality: nat, password: pw, createdAt: Date.now() };
+                await set(ref(db, `users/${userKey}`), userData);
+                
+                showToast("註冊成功！請登入", "success");
+                toggleAuth('login');
+                document.getElementById('loginPhone').value = phone;
+            } catch (error) {
+                showToast("註冊失敗，請檢查網絡", "error");
+            }
+        };
+
+        window.handleLogin = async function() {
+            const region = document.getElementById('loginRegion').value;
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pw = document.getElementById('loginPassword').value;
+
+            if(!phone || !pw) { showToast("請輸入電話與密碼", "error"); return; }
+
+            const userKey = (region + phone).replace(/\+/g, '');
+            try {
+                const snapshot = await get(child(ref(db), `users/${userKey}`));
+                if(snapshot.exists()) {
+                    const user = snapshot.val();
+                    if(user.password === pw) {
+                        user.userKey = userKey; // 儲存金鑰以便後續更新
+                        sessionStorage.setItem('currentUser', JSON.stringify(user));
+                        initApp();
+                        showToast("登入成功", "success");
+                    } else {
+                        showToast("密碼錯誤", "error");
+                    }
+                } else {
+                    showToast("查無此帳號", "error");
+                }
+            } catch (error) {
+                showToast("登入失敗，請檢查網絡", "error");
+            }
+        };
+
+        window.logout = function() {
+            sessionStorage.removeItem('currentUser');
+            location.reload();
+        };
+
+        // ================= 系統初始化 =================
+        function initApp() {
+            const userData = sessionStorage.getItem('currentUser');
+            if(userData) {
+                currentUser = JSON.parse(userData);
+                document.getElementById('viewAuth').style.display = 'none';
+                document.getElementById('bottomNav').style.display = 'flex';
+                document.getElementById('btnLogout').style.display = 'block';
+                document.getElementById('welcomeText').textContent = `歡迎回來，${currentUser.name}`;
+                switchView('home');
+                startSchedulesListener();
+            }
+        }
+
+        // ================= 導航控制 =================
+        window.switchView = function(view) {
+            document.getElementById('viewHome').style.display = view === 'home' ? 'block' : 'none';
+            document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
+            document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
+            
+            document.getElementById('navHome').className = view === 'home' ? 'nav-item active' : 'nav-item';
+            document.getElementById('navMyTickets').className = view === 'tickets' ? 'nav-item active' : 'nav-item';
+            document.getElementById('navProfile').className = view === 'profile' ? 'nav-item active' : 'nav-item';
+            
+            if(view === 'tickets') renderMyTickets();
+            if(view === 'profile') renderProfile();
+            window.scrollTo(0, 0);
+        };
+
+        // ================= 個人資料與遊客 =================
+        window.renderProfile = function() {
+            // 渲染頂部個人資料
+            document.getElementById('profileDataBox').innerHTML = `
+                <div class="profile-row"><span class="profile-label">姓名</span><span class="profile-val">${currentUser.name}</span></div>
+                <div class="profile-row"><span class="profile-label">電話</span><span class="profile-val">${currentUser.region} ${currentUser.phone}</span></div>
+                <div class="profile-row"><span class="profile-label">出生日期</span><span class="profile-val">${currentUser.dob}</span></div>
+                <div class="profile-row"><span class="profile-label">國籍</span><span class="profile-val">${currentUser.nationality}</span></div>
+            `;
+            loadPassengers();
+        };
+
+        window.toggleIdFields = function() {
+            const docType = document.getElementById('passDocType').value;
+            const fieldMain = document.getElementById('fieldMainId');
+            const fieldHr = document.getElementById('fieldHrId');
+            const lblMain = document.getElementById('lblMainId');
+
+            fieldMain.style.display = 'none';
+            fieldHr.style.display = 'none';
+
+            if(docType) {
+                fieldMain.style.display = 'block';
+                if(docType === 'hkid') {
+                    lblMain.textContent = '香港永久性身份證號碼';
+                    fieldHr.style.display = 'block'; // 選擇香港身份證必須填寫通行證
+                } else if(docType === 'cnid') {
+                    lblMain.textContent = '中國內地居民身份證號碼';
+                } else if(docType === 'cnpp') {
+                    lblMain.textContent = '中國護照號碼';
+                } else if(docType === 'hrp') {
+                    lblMain.textContent = '港澳居民來往內地通行證號碼';
+                }
+            }
+        };
+
+        window.checkAge = function() {
+            const dobInput = document.getElementById('passDob').value;
+            if(dobInput) {
+                const birthDate = new Date(dobInput);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) { age--; }
+                
+                const cb = document.getElementById('passAgeCheck');
+                if(age >= 16) {
+                    cb.checked = true;
+                } else {
+                    cb.checked = false;
+                }
+            }
+        };
+
+        window.handleAddPassenger = async function() {
+            const name = document.getElementById('passName').value.trim();
+            const nat = document.getElementById('passNat').value.trim();
+            const docType = document.getElementById('passDocType').value;
+            const mainId = document.getElementById('passMainId').value.trim();
+            const hrId = document.getElementById('passHrId').value.trim();
+            const dob = document.getElementById('passDob').value;
+            const is16 = document.getElementById('passAgeCheck').checked;
+
+            if(!name || !nat || !docType || !mainId || !dob) {
+                showToast("請填寫所有必要的遊客資料", "error"); return;
+            }
+            if(docType === 'hkid' && !hrId) {
+                showToast("選擇香港永久性身份證，必須填寫通行證號碼", "error"); return;
+            }
+            if(!is16) {
+                showToast("若旅客年滿16歲或以上，請務必勾選確認方塊", "error");
+            }
+
+            const passengerData = { 
+                id: Date.now().toString(), name, nationality: nat, docType, mainId, hrId, dob, isAbove16: is16 
+            };
+
+            try {
+                // 將旅客新增至使用者的 Firebase 節點下
+                const passRef = ref(db, `users/${currentUser.userKey}/passengers/${passengerData.id}`);
+                await set(passRef, passengerData);
+                showToast("遊客資料已儲存", "success");
+                
+                // 清空表單
+                document.getElementById('passName').value = '';
+                document.getElementById('passNat').value = '';
+                document.getElementById('passMainId').value = '';
+                document.getElementById('passHrId').value = '';
+                document.getElementById('passDob').value = '';
+                document.getElementById('passDocType').value = '';
+                document.getElementById('passAgeCheck').checked = false;
+                toggleIdFields();
+                loadPassengers();
+            } catch (error) {
+                showToast("儲存失敗", "error");
+            }
+        };
+
+        function loadPassengers() {
+            onValue(ref(db, `users/${currentUser.userKey}/passengers`), (snapshot) => {
+                const list = document.getElementById('passengersList');
+                if (snapshot.exists()) {
+                    const passengers = Object.values(snapshot.val());
+                    list.innerHTML = passengers.map(p => {
+                        const docName = p.docType === 'hkid' ? '香港身份證' : (p.docType === 'cnid' ? '內地身份證' : (p.docType === 'cnpp' ? '中國護照' : '回鄉證'));
+                        return `
+                        <div class="list-item">
+                            <div class="list-info">
+                                <strong><i class="fas fa-user-tag"></i> ${p.name}</strong>
+                                <span>${p.nationality} | ${docName}: ${p.mainId}</span>
+                                ${p.docType === 'hkid' ? `<br><span>通行證: ${p.hrId}</span>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    list.innerHTML = `
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fas fa-user-slash" style="font-size:32px;"></i>
+                        <p style="font-size:14px;">尚無遊客資料</p>
+                    </div>`;
+                }
+            });
+        }
+
+
+        // ================= 購票邏輯 =================
+        function startSchedulesListener() {
+            onValue(ref(db, 'schedules'), (snapshot) => {
+                if (snapshot.exists()) {
+                    allSchedules = Object.values(snapshot.val());
+                    updateOrigins(); 
+                } else {
+                    allSchedules = [];
+                    document.getElementById('selOrigin').innerHTML = '<option value="">目前暫無任何班次</option>';
+                    resetDropdowns(['selDest', 'selDate', 'selTime']);
+                }
+            });
+        }
 
         const getUnique = (arr, key) => [...new Set(arr.map(item => item[key]))];
 
@@ -229,16 +580,11 @@
             const originSel = document.getElementById('selOrigin');
             const currentVal = originSel.value; 
             const origins = getUnique(allSchedules, 'origin');
-            
-            originSel.innerHTML = '<option value="">請選擇出發地</option>' + 
-                origins.map(o => `<option value="${o}">${o}</option>`).join('');
+            originSel.innerHTML = '<option value="">請選擇出發地</option>' + origins.map(o => `<option value="${o}">${o}</option>`).join('');
             
             if(origins.includes(currentVal)) {
-                originSel.value = currentVal;
-                updateDestinations(true);
-            } else {
-                resetDropdowns(['selDest', 'selDate', 'selTime']);
-            }
+                originSel.value = currentVal; updateDestinations(true);
+            } else { resetDropdowns(['selDest', 'selDate', 'selTime']); }
         };
 
         window.updateDestinations = function(keepSelection = false) {
@@ -248,16 +594,11 @@
 
             const currentVal = destSel.value;
             const dests = getUnique(allSchedules.filter(s => s.origin === origin), 'destination');
-            destSel.innerHTML = '<option value="">請選擇目的地</option>' + 
-                dests.map(d => `<option value="${d}">${d}</option>`).join('');
+            destSel.innerHTML = '<option value="">請選擇目的地</option>' + dests.map(d => `<option value="${d}">${d}</option>`).join('');
             destSel.disabled = false;
 
-            if(keepSelection && dests.includes(currentVal)) {
-                destSel.value = currentVal;
-                updateDates(true);
-            } else {
-                resetDropdowns(['selDate', 'selTime']);
-            }
+            if(keepSelection && dests.includes(currentVal)) { destSel.value = currentVal; updateDates(true); } 
+            else { resetDropdowns(['selDate', 'selTime']); }
         };
 
         window.updateDates = function(keepSelection = false) {
@@ -268,19 +609,12 @@
 
             const currentVal = dateSel.value;
             const dates = getUnique(allSchedules.filter(s => s.origin === origin && s.destination === dest), 'date');
-            
             dates.sort((a,b) => new Date(a) - new Date(b));
-
-            dateSel.innerHTML = '<option value="">請選擇乘車日期</option>' + 
-                dates.map(d => `<option value="${d}">${d}</option>`).join('');
+            dateSel.innerHTML = '<option value="">請選擇乘車日期</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
             dateSel.disabled = false;
 
-            if(keepSelection && dates.includes(currentVal)) {
-                dateSel.value = currentVal;
-                updateTimes(true);
-            } else {
-                resetDropdowns(['selTime']);
-            }
+            if(keepSelection && dates.includes(currentVal)) { dateSel.value = currentVal; updateTimes(true); } 
+            else { resetDropdowns(['selTime']); }
         };
 
         window.updateTimes = function(keepSelection = false) {
@@ -292,20 +626,12 @@
 
             const currentVal = timeSel.value;
             const times = getUnique(allSchedules.filter(s => s.origin === origin && s.destination === dest && s.date === date), 'time');
-            
             times.sort();
-
-            timeSel.innerHTML = '<option value="">請選擇班次</option>' + 
-                times.map(t => `<option value="${t}">${t}</option>`).join('');
+            timeSel.innerHTML = '<option value="">請選擇班次</option>' + times.map(t => `<option value="${t}">${t}</option>`).join('');
             timeSel.disabled = false;
 
-            if(keepSelection && times.includes(currentVal)) {
-                timeSel.value = currentVal;
-                showPrice();
-            } else {
-                document.getElementById('priceDisplay').style.display = 'none';
-                document.getElementById('btnBuy').disabled = true;
-            }
+            if(keepSelection && times.includes(currentVal)) { timeSel.value = currentVal; showPrice(); } 
+            else { document.getElementById('priceDisplay').style.display = 'none'; document.getElementById('btnBuy').disabled = true; }
         };
 
         window.showPrice = function() {
@@ -313,10 +639,7 @@
             const dest = document.getElementById('selDest').value;
             const date = document.getElementById('selDate').value;
             const time = document.getElementById('selTime').value;
-
-            currentSelectedSchedule = allSchedules.find(s => 
-                s.origin === origin && s.destination === dest && s.date === date && s.time === time
-            );
+            currentSelectedSchedule = allSchedules.find(s => s.origin === origin && s.destination === dest && s.date === date && s.time === time);
 
             if(currentSelectedSchedule) {
                 const pd = document.getElementById('priceDisplay');
@@ -327,17 +650,12 @@
         };
 
         function resetDropdowns(ids) {
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                el.innerHTML = '<option value="">--</option>';
-                el.disabled = true;
-            });
-            document.getElementById('priceDisplay').style.display = 'none';
-            document.getElementById('btnBuy').disabled = true;
+            ids.forEach(id => { const el = document.getElementById(id); el.innerHTML = '<option value="">--</option>'; el.disabled = true; });
+            document.getElementById('priceDisplay').style.display = 'none'; document.getElementById('btnBuy').disabled = true;
         }
 
         window.purchaseTicket = async function() {
-            if(!currentSelectedSchedule) return;
+            if(!currentSelectedSchedule || !currentUser) return;
             const btn = document.getElementById('btnBuy');
             btn.innerHTML = '<div class="loader"></div>';
             btn.disabled = true;
@@ -352,15 +670,15 @@
                 time: currentSelectedSchedule.time,
                 price: currentSelectedSchedule.price,
                 scansLeft: 1, 
-                purchasedAt: Date.now()
+                purchasedAt: Date.now(),
+                buyerName: currentUser.name,
+                buyerPhone: currentUser.phone
             };
 
             try {
+                // 將車票寫入全局，同時寫入該使用者的節點下
                 await set(ref(db, `tickets/${ticketId}`), ticketData);
-                
-                let myTickets = JSON.parse(localStorage.getItem('myBusTickets') || '[]');
-                myTickets.push(ticketData);
-                localStorage.setItem('myBusTickets', JSON.stringify(myTickets));
+                await set(ref(db, `users/${currentUser.userKey}/myTickets/${ticketId}`), ticketData);
 
                 btn.innerHTML = '<i class="fas fa-credit-card"></i> 確認付款並取票';
                 btn.disabled = false;
@@ -369,10 +687,8 @@
                 switchView('tickets');
                 showQRCode(ticketId, ticketData);
                 
-                // 重置表單
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
                 document.getElementById('selOrigin').value = "";
-                
             } catch(e) {
                 showToast("購票失敗，請檢查網絡連線", "error");
                 btn.innerHTML = '<i class="fas fa-credit-card"></i> 確認付款並取票';
@@ -380,78 +696,60 @@
             }
         };
 
-        window.switchView = function(view) {
-            document.getElementById('viewHome').style.display = view === 'home' ? 'block' : 'none';
-            document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
-            
-            document.getElementById('navHome').className = view === 'home' ? 'nav-item active' : 'nav-item';
-            document.getElementById('navMyTickets').className = view === 'tickets' ? 'nav-item active' : 'nav-item';
-            
-            if(view === 'tickets') renderMyTickets();
-            window.scrollTo(0, 0);
-        };
-
         window.renderMyTickets = function() {
             const list = document.getElementById('myTicketsList');
-            const myTickets = JSON.parse(localStorage.getItem('myBusTickets') || '[]');
-            
-            if(myTickets.length === 0) {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-box-open"></i>
-                        <p>目前沒有已購買的車票</p>
-                    </div>`;
-                return;
-            }
+            onValue(ref(db, `users/${currentUser.userKey}/myTickets`), (snapshot) => {
+                if (snapshot.exists()) {
+                    const myTickets = Object.values(snapshot.val());
+                    myTickets.sort((a,b) => b.purchasedAt - a.purchasedAt);
 
-            myTickets.sort((a,b) => b.purchasedAt - a.purchasedAt);
-
-            list.innerHTML = myTickets.map(t => `
-                <div class="ticket-item">
-                    <div>
-                        <div class="route-info">${t.origin} <i class="fas fa-arrow-right"></i> ${t.destination}</div>
-                        <div class="time-info"><i class="far fa-calendar-alt"></i> ${t.date} | <i class="far fa-clock"></i> ${t.time}</div>
-                    </div>
-                    <button class="btn-view-qr" onclick='window.showQRCode("${t.ticketId}", ${JSON.stringify(t)})'>
-                        <i class="fas fa-qrcode"></i> 掃碼
-                    </button>
-                </div>
-            `).join('');
+                    list.innerHTML = myTickets.map(t => `
+                        <div class="list-item" style="align-items: center;">
+                            <div class="list-info">
+                                <strong style="font-size: 16px;"><i class="fas fa-route"></i> ${t.origin} - ${t.destination}</strong>
+                                <span><i class="far fa-calendar-alt"></i> ${t.date} | <i class="far fa-clock"></i> ${t.time}</span>
+                            </div>
+                            <button class="btn-small" onclick='window.showQRCode("${t.ticketId}", ${JSON.stringify(t)})'>
+                                <i class="fas fa-qrcode"></i> 掃碼
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <p>目前沒有已購買的車票</p>
+                        </div>`;
+                }
+            });
         };
 
-        let qrcodeObj = null;
         window.showQRCode = function(id, data) {
             const modal = document.getElementById('qrModal');
             const qrContainer = document.getElementById('qrcode');
             const details = document.getElementById('ticketDetails');
             
             qrContainer.innerHTML = ''; 
-            
-            qrcodeObj = new QRCode(qrContainer, {
-                text: id, 
-                width: 200,
-                height: 200,
-                colorDark : "#1e293b",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
+            new QRCode(qrContainer, { text: id, width: 200, height: 200, colorDark : "#1e293b", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
 
             details.innerHTML = `
-                <div style="margin-bottom:8px;"><i class="fas fa-route" style="color:var(--text-muted);"></i> 路線：<strong>${data.origin} <i class="fas fa-arrow-right"></i> ${data.destination}</strong></div>
+                <div style="margin-bottom:8px;"><i class="fas fa-route" style="color:var(--text-muted);"></i> 路線：<strong>${data.origin} - ${data.destination}</strong></div>
                 <div style="margin-bottom:8px;"><i class="far fa-calendar-alt" style="color:var(--text-muted);"></i> 日期：<strong>${data.date}</strong></div>
                 <div><i class="far fa-clock" style="color:var(--text-muted);"></i> 時間：<strong>${data.time}</strong></div>
                 <div style="margin-top:12px; font-size:12px; color:var(--text-muted); border-top:1px solid #e2e8f0; padding-top:8px;">票號: ${id}</div>
             `;
-
             modal.style.display = 'flex';
-            // 使用 setTimeout 實現淡入動畫
-            setTimeout(() => modal.classList.add('show'), 10);
         };
 
         window.closeModal = function() {
-            const modal = document.getElementById('qrModal');
-            modal.classList.remove('show');
-            setTimeout(() => modal.style.display = 'none', 300);
+            document.getElementById('qrModal').style.display = 'none';
+        };
+
+        // 頁面載入時檢查登入狀態
+        window.onload = function() {
+            if(sessionStorage.getItem('currentUser')) {
+                initApp();
+            }
         };
     </script>
 </body>
