@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="manifest" id="pwaManifestLink">
+    <meta name="theme-color" content="#B8842E">
     <style>
         :root {
             /* 中秋節限定暖色主題：以桂花金取代原本的冷色系，節慶結束後可改回 #0f766e 系列 */
@@ -28,6 +30,8 @@
         .header { background: var(--surface); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 10; }
         .header .brand { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
         .header .logout-btn { color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .header .header-actions { display: flex; align-items: center; gap: 14px; }
+        .header .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
 
         .container { padding: 20px; max-width: 600px; margin: 0 auto; }
 
@@ -56,7 +60,61 @@
 
         @keyframes scanLine { 0% { top: 6%; } 50% { top: 92%; } 100% { top: 6%; } }
 
-        
+        /* ===== 設定頁 ===== */
+        .settings-search { position: relative; margin-bottom: 16px; }
+        .settings-search i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .settings-search input { padding-left: 42px; }
+        .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .settings-item:last-child { border-bottom: none; }
+        .settings-item .si-left { display: flex; align-items: center; gap: 12px; }
+        .settings-item .si-left i { width: 30px; text-align: center; color: var(--primary); font-size: 17px; }
+        .settings-item .si-right { color: var(--text-muted); font-size: 13px; }
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 24px; transition: .2s; cursor: pointer; }
+        .switch .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: .2s; }
+        .switch input:checked + .slider { background: var(--primary); }
+        .switch input:checked + .slider::before { transform: translateX(20px); }
+        .lang-pill { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: white; font-size: 13px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
+        .lang-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* ===== FAQ 智能客服 ===== */
+        .faq-chat-box { height: 320px; overflow-y: auto; background: #f8fafc; border-radius: 14px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .faq-bubble { max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+        .faq-bubble.bot { background: white; border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .faq-bubble.user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .faq-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .faq-quick button { background: #f1f0e8; border: 1px solid var(--border); border-radius: 16px; padding: 6px 12px; font-size: 12px; color: var(--text-main); cursor: pointer; }
+
+        /* ===== 座位平面圖 ===== */
+        .seat-legend { display: flex; gap: 16px; justify-content: center; margin-bottom: 16px; font-size: 12px; color: var(--text-muted); }
+        .seat-legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .seat-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+        .bus-shell { background: #f8fafc; border: 1px solid var(--border); border-radius: 24px 24px 10px 10px; padding: 20px 14px; max-width: 320px; margin: 0 auto; }
+        .bus-driver { text-align: right; padding-right: 10px; color: var(--text-muted); font-size: 20px; margin-bottom: 12px; }
+        .seat-row { display: grid; grid-template-columns: repeat(2, 34px) 20px repeat(2, 34px); gap: 6px; justify-content: center; margin-bottom: 6px; }
+        .seat-row.last-row { grid-template-columns: repeat(5, 34px); }
+        .seat-btn { width: 34px; height: 34px; border-radius: 8px 8px 4px 4px; border: none; background: #d4dae3; color: var(--text-muted); font-size: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .12s; }
+        .seat-btn.available:hover { transform: translateY(-2px); }
+        .seat-btn.sold { background: #a8b3c1; color: #eef1f5; cursor: not-allowed; opacity: .55; }
+        .seat-btn.selected { background: var(--primary); color: white; box-shadow: 0 0 0 3px rgba(184,132,46,.25); }
+        .selected-seats-bar { text-align: center; font-size: 14px; margin: 16px 0; color: var(--text-main); }
+        .selected-seats-bar b { color: var(--primary); }
+
+        .install-banner { display: flex; align-items: center; gap: 12px; background: #f8fafc; border: 1px dashed var(--border); border-radius: 14px; padding: 12px 14px; margin-top: 12px; font-size: 13px; }
+
+        /* ===== 電子收據（用瀏覽器列印/另存 PDF，天然支援中文，避免 PDF 庫缺中文字型的問題） ===== */
+        #receiptModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 10000; align-items: center; justify-content: center; padding: 20px; }
+        #receiptModal.show { display: flex; }
+        .receipt-paper { background: white; border-radius: 14px; padding: 26px 22px; max-width: 380px; width: 100%; max-height: 85vh; overflow-y: auto; color: #1e293b; }
+        @media print {
+            body * { visibility: hidden; }
+            #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+            #receiptModal { position: absolute; top: 0; left: 0; background: none; padding: 0; display: flex; }
+            .receipt-paper { box-shadow: none; max-height: none; }
+            .receipt-no-print { display: none !important; }
+        }
+
         /* 中秋節限定：夜空 + 滿月背景，節慶結束後可把 background 改回單一淺色漸層 */
         #viewAuth {
             min-height: 100vh;
@@ -199,7 +257,10 @@
 
     <div class="header" id="appHeader" style="display: none;">
         <div class="brand"><i class="fas fa-bus-alt"></i> 瑞里智能購票系統</div>
-        <button class="logout-btn" onclick="window.logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="window.switchView('settings')" title="設定" data-i18n-title="settings"><i class="fas fa-cog"></i></button>
+            <button class="logout-btn" onclick="window.logout()"><i class="fas fa-sign-out-alt"></i> <span data-i18n="logout">登出</span></button>
+        </div>
     </div>
 
     <!-- 視圖：登入 / 註冊 -->
@@ -236,6 +297,7 @@
                 <input type="password" id="loginPassword" placeholder="輸入密碼">
             </div>
             <button class="btn-primary" onclick="window.handleLogin()">登入系統</button>
+            <button class="btn-secondary" id="btnBiometricLogin" style="display:none; margin-top:10px;" onclick="window.handleBiometricLogin()"><i class="fas fa-fingerprint"></i> 使用 Face ID / 指紋登入</button>
             <button class="btn-secondary" onclick="window.toggleAuth('register')">註冊新帳號</button>
         </div>
 
@@ -325,8 +387,8 @@
             <div id="priceDisplay" class="price-display">HK$ 0</div>
             <div id="walletInsufficientHint" style="display:none; text-align:center; color:var(--danger); font-size:13px; margin:-10px 0 14px;"><i class="fas fa-exclamation-circle"></i> 銀包餘額不足，請先增值</div>
 
-            <button id="btnBuy" class="btn-primary" disabled onclick="window.purchaseTicket()">
-                <i class="fas fa-wallet"></i> 以銀包餘額扣款取票
+            <button id="btnBuy" class="btn-primary" disabled onclick="window.openSeatSelection()">
+                <i class="fas fa-chair"></i> <span data-i18n="btn_next_seat">下一步：選擇座位</span>
             </button>
         </div>
     </div>
@@ -441,18 +503,103 @@
         </div>
     </div>
 
+    <!-- 視圖：座位平面圖選擇（2+2 排列，49 座） -->
+    <div class="container" id="viewSeatSelect" style="display: none;">
+        <div class="card">
+            <button class="btn-secondary" style="width:auto; padding:8px 16px; margin-bottom:14px;" onclick="window.switchView('home')"><i class="fas fa-arrow-left"></i> 返回修改訂單</button>
+            <h2 class="card-title" style="border-bottom:none;"><i class="fas fa-chair" style="color:var(--primary);"></i> <span data-i18n="seat_title">請選擇座位</span></h2>
+            <p id="seatScheduleInfo" style="color:var(--text-muted); font-size:13px; margin-top:-8px;"></p>
+
+            <div class="seat-legend">
+                <span><i style="background:#d4dae3;"></i> <span data-i18n="seat_available">可選</span></span>
+                <span><i style="background:var(--primary);"></i> <span data-i18n="seat_selected">已選</span></span>
+                <span><i style="background:#a8b3c1;"></i> <span data-i18n="seat_sold">已售</span></span>
+            </div>
+
+            <div class="bus-shell">
+                <div class="bus-driver"><i class="fas fa-user-tie"></i> <span style="font-size:11px;">司機</span></div>
+                <div id="seatGrid"></div>
+            </div>
+
+            <div class="selected-seats-bar"><span data-i18n="seat_chosen">已選座位</span>: <b id="seatChosenText">-</b></div>
+            <button class="btn-primary" id="btnConfirmSeats" disabled onclick="window.confirmSeatsAndPurchase()">
+                <i class="fas fa-wallet"></i> <span data-i18n="seat_confirm_btn">確認並以銀包扣款取票</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 視圖：設定 -->
+    <div class="container" id="viewSettings" style="display: none;">
+        <div class="settings-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="settingsSearchInput" placeholder="搜尋設定" data-i18n-placeholder="settings_search_placeholder" oninput="window.filterSettings(this.value)">
+        </div>
+
+        <div class="card">
+            <h2 class="card-title" data-i18n="settings_general">一般</h2>
+            <div class="settings-item" data-kw="生物 指紋 face id 辨識 登入 biometric">
+                <div class="si-left"><i class="fas fa-fingerprint"></i><span data-i18n="settings_biometric">生物辨識登入</span></div>
+                <label class="switch"><input type="checkbox" id="biometricToggle" onchange="window.toggleBiometric(this.checked)"><span class="slider"></span></label>
+            </div>
+            <div class="settings-item" data-kw="安裝 主畫面 pwa install home screen">
+                <div class="si-left"><i class="fas fa-mobile-alt"></i><span data-i18n="settings_install">加到主畫面 (PWA)</span></div>
+                <button class="lang-pill" onclick="window.tryInstallPwa()"><span data-i18n="settings_install_btn">安裝</span></button>
+            </div>
+        </div>
+
+        <div class="card" data-kw="語言 language 繁體 簡體 english 简体">
+            <h2 class="card-title" data-i18n="settings_language">語言 / Language</h2>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="lang-pill" data-lang="zh-Hant" onclick="window.setLanguage('zh-Hant')">繁體中文</button>
+                <button class="lang-pill" data-lang="zh-Hans" onclick="window.setLanguage('zh-Hans')">简体中文</button>
+                <button class="lang-pill" data-lang="en" onclick="window.setLanguage('en')">English</button>
+            </div>
+        </div>
+
+        <div class="card" data-kw="客服 faq 常見問題 智能 機械人 chatbot help">
+            <h2 class="card-title" data-i18n="settings_faq">智能客服 FAQ</h2>
+            <div class="faq-chat-box" id="faqChatBox"></div>
+            <div class="faq-quick" id="faqQuickBtns"></div>
+            <div class="input-group">
+                <input type="text" id="faqInput" placeholder="輸入您的問題..." data-i18n-placeholder="faq_placeholder">
+                <button class="btn-primary" style="width:auto; padding:0 18px;" onclick="window.askFaq()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <div class="card" data-kw="關於 版本 about version">
+            <h2 class="card-title" data-i18n="settings_about">關於</h2>
+            <p style="font-size:13px; color:var(--text-muted); margin:0;">瑞里智能購票系統　v1.0</p>
+        </div>
+    </div>
+
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" id="navHome" onclick="window.switchView('home')">
-            <i class="fas fa-home"></i> 購票
+            <i class="fas fa-home"></i> <span data-i18n="nav_home">購票</span>
         </div>
         <div class="nav-item" id="navWallet" onclick="window.switchView('wallet')">
-            <i class="fas fa-wallet"></i> 銀包
+            <i class="fas fa-wallet"></i> <span data-i18n="nav_wallet">銀包</span>
         </div>
         <div class="nav-item" id="navMyTickets" onclick="window.switchView('tickets')">
-            <i class="fas fa-qrcode"></i> 車票
+            <i class="fas fa-qrcode"></i> <span data-i18n="nav_tickets">車票</span>
         </div>
         <div class="nav-item" id="navProfile" onclick="window.switchView('profile')">
-            <i class="fas fa-user"></i> 個人資料
+            <i class="fas fa-user"></i> <span data-i18n="nav_profile">個人資料</span>
+        </div>
+    </div>
+
+    <!-- 電子收據列印彈窗 -->
+    <div id="receiptModal">
+        <div class="receipt-paper" id="receiptPrintArea">
+            <div style="text-align:center; margin-bottom:14px;">
+                <strong style="font-size:18px;">瑞里智能購票系統</strong><br>
+                <span style="font-size:12px; color:#888;">電子收據 · E-Receipt</span>
+            </div>
+            <div id="receiptBody" style="font-size:13px; line-height:2;"></div>
+            <div style="text-align:center; font-size:11px; color:#888; margin-top:16px; border-top:1px dashed #ccc; padding-top:10px;">此收據由系統自動產生，僅供報銷及查核參考</div>
+            <div class="receipt-no-print" style="display:flex; gap:10px; margin-top:18px;">
+                <button class="btn-secondary" style="flex:1;" onclick="window.closeReceipt()">關閉</button>
+                <button class="btn-primary" style="flex:1;" onclick="window.print()"><i class="fas fa-print"></i> 列印 / 儲存 PDF</button>
+            </div>
         </div>
     </div>
 
@@ -498,6 +645,259 @@
 
         const genSecret = () => { const b = new Uint8Array(16); crypto.getRandomValues(b); return Array.from(b, x => x.toString(16).padStart(2, "0")).join(""); };
 
+        // ================= 生物辨識登入（裝置端 WebAuthn 便捷解鎖） =================
+        // 說明：這是「裝置端便捷解鎖」而非完整伺服器端 WebAuthn 簽章驗證——
+        // 生物辨識通過後，直接用本機記住的會員帳號重新登入，安全性等同於「這支手機本身可信任」，
+        // 而不是每次都對伺服器做密碼學層級的簽章核實。真要做到後者需要後端配合，這裡先用最實用的方式落地。
+        const bufToB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const b64ToBuf = (b64) => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+        async function biometricAvailable() {
+            if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return false;
+            try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) { return false; }
+        }
+
+        window.toggleBiometric = async function(enable) {
+            const box = document.getElementById('biometricToggle');
+            if (!currentUser) { if (box) box.checked = false; return; }
+            if (enable) {
+                if (!(await biometricAvailable())) {
+                    showToast("此裝置不支援或未設定 Face ID / 指紋", "error");
+                    if (box) box.checked = false;
+                    return;
+                }
+                try {
+                    const cred = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: crypto.getRandomValues(new Uint8Array(32)),
+                            rp: { name: '瑞里智能購票系統' },
+                            user: { id: crypto.getRandomValues(new Uint8Array(16)), name: currentUser.phone || currentUser.userKey, displayName: currentUser.name },
+                            pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+                            authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+                            timeout: 60000
+                        }
+                    });
+                    localStorage.setItem('biometricUser', JSON.stringify({ userKey: currentUser.userKey, credId: bufToB64(cred.rawId) }));
+                    showToast("已啟用生物辨識登入", "success");
+                } catch (e) {
+                    showToast("設定生物辨識失敗或已取消", "error");
+                    if (box) box.checked = false;
+                }
+            } else {
+                localStorage.removeItem('biometricUser');
+                showToast("已停用生物辨識登入", "success");
+            }
+        };
+
+        window.handleBiometricLogin = async function() {
+            const saved = localStorage.getItem('biometricUser');
+            if (!saved) return;
+            let userKey, credId;
+            try { ({ userKey, credId } = JSON.parse(saved)); } catch (e) { return; }
+            try {
+                await navigator.credentials.get({
+                    publicKey: {
+                        challenge: crypto.getRandomValues(new Uint8Array(32)),
+                        allowCredentials: [{ id: b64ToBuf(credId), type: 'public-key' }],
+                        userVerification: 'required',
+                        timeout: 60000
+                    }
+                });
+                const snap = await get(child(ref(db), `users/${userKey}`));
+                if (!snap.exists()) { showToast("找不到會員資料，請改用密碼登入", "error"); return; }
+                const u = snap.val();
+                const { passwordHash, password, passengers, myTickets, walletSecret, ...safeUser } = u;
+                safeUser.userKey = userKey;
+                sessionStorage.setItem('currentUser', JSON.stringify(safeUser));
+                initApp();
+                showToast("生物辨識登入成功", "success");
+            } catch (e) {
+                showToast("生物辨識驗證失敗，請改用密碼登入", "error");
+            }
+        };
+
+        async function refreshBiometricUi() {
+            const loginBtn = document.getElementById('btnBiometricLogin');
+            const saved = localStorage.getItem('biometricUser');
+            const available = await biometricAvailable();
+            if (loginBtn) loginBtn.style.display = (saved && available) ? 'block' : 'none';
+            const toggle = document.getElementById('biometricToggle');
+            if (toggle && currentUser) {
+                try { toggle.checked = saved && JSON.parse(saved).userKey === currentUser.userKey; } catch (e) { toggle.checked = false; }
+            }
+        }
+
+        // ================= PWA：加到主畫面 + 離線快取 =================
+        function setupPwaManifest() {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#B8842E"/><text x="256" y="330" font-size="230" text-anchor="middle" fill="white" font-family="sans-serif">瑞</text></svg>`;
+            const icon = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+            const manifest = {
+                name: '瑞里智能購票系統', short_name: '瑞里購票', start_url: '.', display: 'standalone',
+                background_color: '#FBF6EC', theme_color: '#B8842E',
+                icons: [{ src: icon, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }]
+            };
+            const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+            const link = document.getElementById('pwaManifestLink');
+            if (link) link.href = URL.createObjectURL(blob);
+        }
+
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstallPrompt = e; });
+
+        window.tryInstallPwa = async function() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                try { await deferredInstallPrompt.userChoice; } catch (e) {}
+                deferredInstallPrompt = null;
+            } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+                showToast("請點瀏覽器下方「分享」按鈕，再選「加入主畫面」", "info");
+            } else {
+                showToast("此瀏覽器可從選單中選「安裝應用程式 / 加到主畫面」", "info");
+            }
+        };
+
+        // 需要把附帶的 sw.js 放在與本檔案相同的目錄並以 https 部署，離線快取才會生效；找不到檔案時安靜失敗，不影響其餘功能
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            }
+        }
+
+        // ================= 多語言（繁中 / 简中 / English，僅切換界面文字） =================
+        const I18N = {
+            'zh-Hant': {
+                settings: '設定', logout: '登出', nav_home: '購票', nav_wallet: '銀包', nav_tickets: '車票', nav_profile: '個人資料',
+                settings_search_placeholder: '搜尋設定', settings_general: '一般', settings_biometric: '生物辨識登入',
+                settings_install: '加到主畫面 (PWA)', settings_install_btn: '安裝', settings_language: '語言 / Language',
+                settings_faq: '智能客服 FAQ', settings_about: '關於', faq_placeholder: '輸入您的問題...',
+                seat_title: '請選擇座位', seat_available: '可選', seat_selected: '已選', seat_sold: '已售',
+                seat_chosen: '已選座位', seat_confirm_btn: '確認並以銀包扣款取票', btn_next_seat: '下一步：選擇座位'
+            },
+            'zh-Hans': {
+                settings: '设定', logout: '登出', nav_home: '购票', nav_wallet: '钱包', nav_tickets: '车票', nav_profile: '个人资料',
+                settings_search_placeholder: '搜索设定', settings_general: '一般', settings_biometric: '生物识别登录',
+                settings_install: '添加到主屏幕 (PWA)', settings_install_btn: '安装', settings_language: '语言 / Language',
+                settings_faq: '智能客服 FAQ', settings_about: '关于', faq_placeholder: '输入您的问题...',
+                seat_title: '请选择座位', seat_available: '可选', seat_selected: '已选', seat_sold: '已售',
+                seat_chosen: '已选座位', seat_confirm_btn: '确认并以钱包扣款取票', btn_next_seat: '下一步：选择座位'
+            },
+            en: {
+                settings: 'Settings', logout: 'Logout', nav_home: 'Book', nav_wallet: 'Wallet', nav_tickets: 'Tickets', nav_profile: 'Profile',
+                settings_search_placeholder: 'Search settings', settings_general: 'General', settings_biometric: 'Biometric Login',
+                settings_install: 'Add to Home Screen (PWA)', settings_install_btn: 'Install', settings_language: 'Language / 語言',
+                settings_faq: 'Smart FAQ Assistant', settings_about: 'About', faq_placeholder: 'Type your question...',
+                seat_title: 'Select Your Seat', seat_available: 'Available', seat_selected: 'Selected', seat_sold: 'Sold',
+                seat_chosen: 'Selected seats', seat_confirm_btn: 'Confirm & Pay with Wallet', btn_next_seat: 'Next: Choose Seat'
+            }
+        };
+
+        window.setLanguage = function(lang) {
+            if (!I18N[lang]) return;
+            currentLang = lang;
+            localStorage.setItem('appLang', lang);
+            applyLanguage(lang);
+        };
+
+        function applyLanguage(lang) {
+            const dict = I18N[lang] || I18N['zh-Hant'];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const k = el.dataset.i18n;
+                if (dict[k]) el.textContent = dict[k];
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const k = el.dataset.i18nTitle;
+                if (dict[k]) el.title = dict[k];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const k = el.dataset.i18nPlaceholder;
+                if (dict[k]) el.placeholder = dict[k];
+            });
+            document.querySelectorAll('.lang-pill[data-lang]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+        }
+
+        // ================= 智能客服 FAQ 機械人（關鍵字比對，非真人客服） =================
+        const FAQ_DATA = {
+            'zh-Hant': [
+                { q: '如何為銀包增值？', kw: ['增值', '充值', '銀包', '入錢'], a: '請到「銀包」頁面，出示您的個人增值二維碼給職員，職員確認實收金額後會為您增值。二維碼每 10 分鐘自動更新一次，過期需重新整理畫面。' },
+                { q: '車票二維碼可以截圖嗎？', kw: ['截圖', '二維碼', 'qr', '過期'], a: '不建議截圖。車票的二維碼每 30 秒自動更新，截圖或轉發他人將無法通過驗票，請於上車時直接出示手機畫面。' },
+                { q: '如何選擇座位？', kw: ['座位', '選位', '位置'], a: '選好乘客後按「下一步：選擇座位」，即可在座位平面圖上點選座位（本車為 2+2 排列，共 49 座），已售座位會顯示灰色。' },
+                { q: '可以退票嗎？', kw: ['退票', '取消', '退款'], a: '目前系統未開放自助退票，如需協助請聯絡客服或到職員櫃台處理。' },
+                { q: '忘記密碼怎麼辦？', kw: ['忘記', '密碼', '登入不到'], a: '目前暫未開放自助重設密碼，請聯絡客服協助核實身份後重設。' }
+            ],
+            'zh-Hans': [
+                { q: '如何为钱包充值？', kw: ['增值', '充值', '钱包', '入钱'], a: '请到「钱包」页面，出示您的个人充值二维码给职员，职员确认实收金额后会为您充值。二维码每 10 分钟自动更新一次，过期需重新刷新画面。' },
+                { q: '车票二维码可以截图吗？', kw: ['截图', '二维码', 'qr', '过期'], a: '不建议截图。车票的二维码每 30 秒自动更新，截图或转发他人将无法通过验票，请于上车时直接出示手机画面。' },
+                { q: '如何选择座位？', kw: ['座位', '选位', '位置'], a: '选好乘客后按「下一步：选择座位」，即可在座位平面图上点选座位（本车为 2+2 排列，共 49 座），已售座位会显示灰色。' },
+                { q: '可以退票吗？', kw: ['退票', '取消', '退款'], a: '目前系统未开放自助退票，如需协助请联系客服或到职员柜台处理。' },
+                { q: '忘记密码怎么办？', kw: ['忘记', '密码', '登录不到'], a: '目前暂未开放自助重设密码，请联系客服协助核实身份后重设。' }
+            ],
+            en: [
+                { q: 'How do I top up my wallet?', kw: ['top up', 'topup', 'wallet', 'add money'], a: 'Go to the Wallet tab and show your personal top-up QR code to staff. It refreshes every 10 minutes, so refresh the screen if it expires.' },
+                { q: 'Can I screenshot my ticket QR code?', kw: ['screenshot', 'qr', 'expired'], a: 'It is not recommended. The ticket QR code refreshes every 30 seconds, so a screenshot will fail verification. Please show the live screen when boarding.' },
+                { q: 'How do I choose my seat?', kw: ['seat', 'choose seat', 'seating'], a: 'After selecting passengers, tap "Next: Choose Seat" to pick from the seat map (2+2 layout, 49 seats total). Sold seats are shown in grey.' },
+                { q: 'Can I get a refund?', kw: ['refund', 'cancel'], a: 'Self-service refunds are not yet available. Please contact staff for assistance.' },
+                { q: 'I forgot my password', kw: ['forgot', 'password', 'reset'], a: 'Self-service password reset is not yet available. Please contact staff to verify your identity.' }
+            ]
+        };
+
+        function faqBubble(cls, text) {
+            const box = document.getElementById('faqChatBox');
+            const b = document.createElement('div');
+            b.className = `faq-bubble ${cls}`;
+            b.textContent = text;
+            box.appendChild(b);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function initFaqChat() {
+            const box = document.getElementById('faqChatBox');
+            const quick = document.getElementById('faqQuickBtns');
+            if (!box || box.dataset.inited) { renderFaqQuick(); return; }
+            box.dataset.inited = '1';
+            faqBubble('bot', '您好！我是瑞里智能購票系統的智能客服，請問有什麼可以幫到您？（點下方常見問題，或直接輸入文字）');
+            renderFaqQuick();
+        }
+
+        function renderFaqQuick() {
+            const quick = document.getElementById('faqQuickBtns');
+            const data = FAQ_DATA[currentLang] || FAQ_DATA['zh-Hant'];
+            quick.innerHTML = '';
+            data.forEach(item => {
+                const b = document.createElement('button');
+                b.textContent = item.q;
+                b.onclick = () => { faqBubble('user', item.q); faqBubble('bot', item.a); };
+                quick.appendChild(b);
+            });
+        }
+
+        window.askFaq = function() {
+            const input = document.getElementById('faqInput');
+            const text = input.value.trim();
+            if (!text) return;
+            faqBubble('user', text);
+            const data = FAQ_DATA[currentLang] || FAQ_DATA['zh-Hant'];
+            const lower = text.toLowerCase();
+            const hit = data.find(item => item.kw.some(k => lower.includes(k.toLowerCase())));
+            faqBubble('bot', hit ? hit.a : (currentLang === 'en' ? "Sorry, I couldn't find an answer for that. Please contact staff for further help." : '抱歉，暫時未能理解您的問題，建議直接聯絡客服職員協助處理。'));
+            input.value = '';
+        };
+
+        document.getElementById('faqInput') && document.getElementById('faqInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') window.askFaq();
+        });
+
+        // ================= 設定頁搜尋欄 =================
+        window.filterSettings = function(keyword) {
+            const kw = keyword.trim().toLowerCase();
+            document.querySelectorAll('#viewSettings .card').forEach(card => {
+                if (!kw) { card.style.display = 'block'; return; }
+                const text = (card.dataset.kw || '') + card.textContent;
+                card.style.display = text.toLowerCase().includes(kw) ? 'block' : 'none';
+            });
+        };
+
         function calcAge(dobStr) {
             const birth = new Date(dobStr), today = new Date();
             let age = today.getFullYear() - birth.getFullYear();
@@ -521,6 +921,16 @@
         let walletSecret = null;
         let unsubWallet = null, unsubWalletTx = null;
         let walletQrTimer = null;
+        // ---------- 座位選擇狀態（2+2 排列，49 座） ----------
+        const BUS_TOTAL_SEATS = 49;
+        const BUS_SEATS_PER_ROW = 4; // 2 (左) + 走道 + 2 (右)
+        let seatSelectSchedule = null;
+        let seatSelectPassengers = [];
+        let selectedSeats = [];
+        let currentSoldSeats = {};
+        let unsubSeatBookings = null;
+        // ---------- 語言 ----------
+        let currentLang = localStorage.getItem('appLang') || 'zh-Hant';
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toastBox');
@@ -635,12 +1045,15 @@
                 currentTicketListeners = [];
             }
             if (view !== 'wallet' && walletQrTimer) { clearInterval(walletQrTimer); walletQrTimer = null; }
+            if (view !== 'seatSelect' && unsubSeatBookings) { unsubSeatBookings(); unsubSeatBookings = null; }
             document.getElementById('viewHome').style.display = view === 'home' ? 'block' : 'none';
             document.getElementById('viewWallet').style.display = view === 'wallet' ? 'block' : 'none';
             document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
             document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
             document.getElementById('viewTicketDetail').style.display = view === 'ticketDetail' ? 'block' : 'none';
-            const activeMap = { home: 'viewHome', wallet: 'viewWallet', tickets: 'viewMyTickets', profile: 'viewProfile', ticketDetail: 'viewTicketDetail' };
+            document.getElementById('viewSeatSelect').style.display = view === 'seatSelect' ? 'block' : 'none';
+            document.getElementById('viewSettings').style.display = view === 'settings' ? 'block' : 'none';
+            const activeMap = { home: 'viewHome', wallet: 'viewWallet', tickets: 'viewMyTickets', profile: 'viewProfile', ticketDetail: 'viewTicketDetail', seatSelect: 'viewSeatSelect', settings: 'viewSettings' };
             const activeEl = document.getElementById(activeMap[view]);
             if (activeEl) { activeEl.classList.remove('view-anim'); void activeEl.offsetWidth; activeEl.classList.add('view-anim'); }
 
@@ -652,6 +1065,7 @@
             if (view === 'tickets') renderMyTickets();
             if (view === 'profile') renderProfile();
             if (view === 'wallet') startWalletQrLoop();
+            if (view === 'settings') { initFaqChat(); refreshBiometricUi(); }
             window.scrollTo(0, 0);
         }
 
@@ -1016,53 +1430,174 @@
             document.getElementById('btnBuy').disabled = true;
         }
 
-        // ---------- 購票 ----------
-        async function purchaseTicket() {
+        // ---------- 座位平面圖（2+2 排列，11 排 + 尾排 5 人，共 49 座） ----------
+        const SEAT_LAYOUT = (() => {
+            const rows = [];
+            for (let r = 1; r <= 11; r++) rows.push({ row: r, codes: [`${r}A`, `${r}B`, `${r}C`, `${r}D`], lastRow: false });
+            const lr = 12;
+            rows.push({ row: lr, codes: [`${lr}A`, `${lr}B`, `${lr}C`, `${lr}D`, `${lr}E`], lastRow: true });
+            return rows;
+        })();
+
+        function makeSeatBtn(code) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'seat-btn available';
+            b.textContent = code;
+            b.dataset.code = code;
+            b.onclick = () => window.toggleSeat(code);
+            return b;
+        }
+
+        function buildSeatGrid() {
+            const grid = document.getElementById('seatGrid');
+            grid.innerHTML = '';
+            SEAT_LAYOUT.forEach(rowDef => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'seat-row' + (rowDef.lastRow ? ' last-row' : '');
+                if (rowDef.lastRow) {
+                    rowDef.codes.forEach(code => rowEl.appendChild(makeSeatBtn(code)));
+                } else {
+                    rowEl.appendChild(makeSeatBtn(rowDef.codes[0]));
+                    rowEl.appendChild(makeSeatBtn(rowDef.codes[1]));
+                    rowEl.appendChild(document.createElement('div')); // 走道
+                    rowEl.appendChild(makeSeatBtn(rowDef.codes[2]));
+                    rowEl.appendChild(makeSeatBtn(rowDef.codes[3]));
+                }
+                grid.appendChild(rowEl);
+            });
+            refreshSeatUI();
+        }
+
+        function refreshSeatUI() {
+            document.querySelectorAll('#seatGrid .seat-btn').forEach(b => {
+                const code = b.dataset.code;
+                b.classList.remove('available', 'sold', 'selected');
+                if (currentSoldSeats[code]) b.classList.add('sold');
+                else if (selectedSeats.includes(code)) b.classList.add('selected');
+                else b.classList.add('available');
+            });
+            updateSeatConfirmState();
+        }
+
+        function updateSeatConfirmState() {
+            const txt = document.getElementById('seatChosenText');
+            const btn = document.getElementById('btnConfirmSeats');
+            if (!txt || !btn) return;
+            txt.textContent = selectedSeats.length ? selectedSeats.slice().sort().join('、') : '-';
+            btn.disabled = selectedSeats.length !== seatSelectPassengers.length;
+        }
+
+        window.toggleSeat = function(code) {
+            if (currentSoldSeats[code]) return;
+            const idx = selectedSeats.indexOf(code);
+            if (idx >= 0) selectedSeats.splice(idx, 1);
+            else {
+                if (selectedSeats.length >= seatSelectPassengers.length) { showToast("已選滿座位數量，請先取消其他座位", "error"); return; }
+                selectedSeats.push(code);
+            }
+            refreshSeatUI();
+        };
+
+        window.openSeatSelection = async function() {
             const checkedBoxes = document.querySelectorAll('.pass-cb:checked');
             if (checkedBoxes.length === 0) { showToast("請至少選擇一位乘車乘客", "error"); return; }
             if (!currentSelectedSchedule) { showToast("班次已下架，請重新選擇", "error"); return; }
-
-            // 付款前再確認班次仍存在且未開出
             const sch = allSchedules.find(s => s.id === currentSelectedSchedule.id);
             if (!sch || new Date(`${sch.date}T${sch.time}:00`) <= new Date()) {
                 showToast("此班次已下架或已開出，請重新選擇", "error"); return;
             }
+            if (checkedBoxes.length > BUS_TOTAL_SEATS) { showToast("乘客數量超過整車座位數", "error"); return; }
 
-            const total = Number(sch.price) * checkedBoxes.length;
-            const btn = document.getElementById('btnBuy');
-            const btnHtml = '<i class="fas fa-wallet"></i> 以銀包餘額扣款取票';
-            btn.innerHTML = '<div class="loader"></div>';
-            btn.disabled = true;
+            seatSelectSchedule = sch;
+            seatSelectPassengers = Array.from(checkedBoxes).map(cb => savedPassengersList.find(p => p.id === cb.value)).filter(Boolean);
+            selectedSeats = [];
+            currentSoldSeats = {};
+            document.getElementById('seatScheduleInfo').textContent = `${sch.origin} → ${sch.destination}　${sch.date} ${sch.time}　共 ${seatSelectPassengers.length} 位乘客`;
+            buildSeatGrid();
+            switchView('seatSelect');
+            if (unsubSeatBookings) unsubSeatBookings();
+            unsubSeatBookings = onValue(ref(db, `seatBookings/${sch.id}`), (snap) => {
+                currentSoldSeats = snap.val() || {};
+                refreshSeatUI();
+            });
+        };
 
-            // 先用 transaction 從銀包原子扣款，避免同時開兩個分頁重複下單超支
+        async function releaseSeats(scheduleId, seats) {
+            if (!seats.length) return;
+            const updates = {};
+            seats.forEach(s => { updates[`seatBookings/${scheduleId}/${s}`] = null; });
+            try { await update(ref(db), updates); } catch (e) {}
+        }
+
+        // ---------- 購票（含座位搶佔 + 銀包扣款） ----------
+        window.confirmSeatsAndPurchase = async function() {
+            if (!seatSelectSchedule || selectedSeats.length !== seatSelectPassengers.length) { showToast("請選擇正確數量的座位", "error"); return; }
+            const sch = allSchedules.find(s => s.id === seatSelectSchedule.id);
+            if (!sch || new Date(`${sch.date}T${sch.time}:00`) <= new Date()) {
+                showToast("此班次已下架或已開出，請重新選擇", "error"); switchView('home'); return;
+            }
+
+            const btn = document.getElementById('btnConfirmSeats');
+            const btnHtml = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<div class="loader"></div>';
+
+            // 1) 依序原子搶佔座位；任何一個座位剛被別人選走就整批釋放並中止
+            const claimed = [];
+            for (const seat of selectedSeats) {
+                try {
+                    const result = await runTransaction(ref(db, `seatBookings/${sch.id}/${seat}`), (cur) => cur ? undefined : true);
+                    if (!result.committed) {
+                        await releaseSeats(sch.id, claimed);
+                        showToast(`座位 ${seat} 剛被其他乘客選走，請重新選擇`, "error");
+                        btn.disabled = false; btn.innerHTML = btnHtml;
+                        return;
+                    }
+                    claimed.push(seat);
+                } catch (e) {
+                    await releaseSeats(sch.id, claimed);
+                    showToast("選位失敗，請檢查網絡", "error");
+                    btn.disabled = false; btn.innerHTML = btnHtml;
+                    return;
+                }
+            }
+
+            // 2) 用 transaction 從銀包原子扣款
+            const total = Number(sch.price) * seatSelectPassengers.length;
             const walletRef = ref(db, `users/${currentUser.userKey}/walletBalance`);
             let deducted = false;
             try {
                 const result = await runTransaction(walletRef, (bal) => {
                     bal = Number(bal) || 0;
-                    if (bal < total) return; // 中止交易
+                    if (bal < total) return;
                     return bal - total;
                 });
-                if (!result.committed) { showToast("銀包餘額不足，請先增值", "error"); return; }
+                if (!result.committed) {
+                    await releaseSeats(sch.id, claimed);
+                    showToast("銀包餘額不足，請先增值", "error");
+                    btn.disabled = false; btn.innerHTML = btnHtml;
+                    return;
+                }
                 deducted = true;
             } catch (e) {
-                showToast("扣款失敗，請檢查網絡", "error"); return;
-            } finally {
-                btn.innerHTML = btnHtml;
-                btn.disabled = document.querySelectorAll('.pass-cb:checked').length === 0;
+                await releaseSeats(sch.id, claimed);
+                showToast("扣款失敗，請檢查網絡", "error");
+                btn.disabled = false; btn.innerHTML = btnHtml;
+                return;
             }
 
-            const selectedPassengers = Array.from(checkedBoxes).map(cb => savedPassengersList.find(p => p.id === cb.value)).filter(Boolean);
+            // 3) 寫入車票資料（含座位號），並把座位登記改成對應車票編號方便日後查核
             const ids = [];
             const updates = {};
-
-            selectedPassengers.forEach(pass => {
+            seatSelectPassengers.forEach((pass, i) => {
                 const ticketId = genTicketId();
+                const seat = claimed[i];
                 const ticketData = {
                     ticketId,
                     secret: genSecret(), // 動態 QR 簽名密鑰
                     origin: sch.origin, destination: sch.destination, date: sch.date, time: sch.time,
                     price: Number(sch.price),
+                    seatNumber: seat,
                     status: 'pending',
                     purchasedAt: Date.now(),
                     buyerName: currentUser.name,
@@ -1075,6 +1610,7 @@
                 };
                 updates[`tickets/${ticketId}`] = ticketData;
                 updates[`users/${currentUser.userKey}/myTickets/${ticketId}`] = ticketData;
+                updates[`seatBookings/${sch.id}/${seat}`] = ticketId;
                 ids.push(ticketId);
             });
             const txId = push(ref(db, `users/${currentUser.userKey}/walletTx`)).key;
@@ -1086,13 +1622,16 @@
                 celebrateConfetti();
                 document.getElementById('selOrigin').value = "";
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
+                seatSelectSchedule = null; seatSelectPassengers = []; selectedSeats = [];
                 openMultipleTicketDetail(ids);
             } catch (e) {
-                // 出票失敗，把扣掉的銀包餘額退回
+                // 出票失敗：退回銀包餘額，並釋放已搶佔的座位
                 if (deducted) { try { await runTransaction(walletRef, (bal) => (Number(bal) || 0) + total); } catch (e2) {} }
-                showToast("購票失敗，已退回銀包餘額，請檢查網絡連線", "error");
+                await releaseSeats(sch.id, claimed);
+                showToast("購票失敗，已退回銀包餘額與座位，請檢查網絡連線", "error");
+                btn.disabled = false; btn.innerHTML = btnHtml;
             }
-        }
+        };
 
         // 只刪除乘客自己的車票副本；總表 tickets 保留，作為驗票及已售統計的紀錄
         async function deleteTicket(ticketId) {
@@ -1164,6 +1703,7 @@
                     <div class="qr-hint" id="tdHint-${esc(id)}"><i class="fas fa-sync-alt"></i> 二維碼每 30 秒自動更新，截圖無效</div>
                     <div class="ticket-detail-info" id="tdInfo-${esc(id)}">載入中...</div>
                     <div class="timeline" id="tdTime-${esc(id)}"></div>
+                    <button class="btn-secondary receipt-no-print" style="width:100%; margin-top:14px;" onclick="window.downloadReceipt('${esc(id)}')"><i class="fas fa-file-invoice"></i> 下載電子收據</button>
                   </div><div class="tear-piece"></div></div>
                     <div id="tdDelete-${esc(id)}" style="display:none; margin-top:15px;">
                         <button class="btn-danger" style="width:100%;" onclick="window.deleteTicket('${esc(id)}')">
@@ -1256,17 +1796,39 @@
             $('tdInfo').innerHTML = `
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-user"></i> 乘車旅客：</span><strong>${esc(data.passengerName || data.buyerName)}</strong></div>
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車票地點：</span><strong>${esc(data.origin)} 至 ${esc(data.destination)}</strong></div>
+                ${data.seatNumber ? `<div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-chair"></i> 座位編號：</span><strong>${esc(data.seatNumber)}</strong></div>` : ''}
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車票價格：</span><strong style="color:var(--primary);">HK$ ${esc(data.price)}</strong></div>
                 <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">訂單編號: ${esc(id)}</div>`;
             tick(id);
         }
+
+        // ---------- 電子收據（瀏覽器列印 / 另存 PDF，天然支援中文顯示） ----------
+        window.downloadReceipt = function(id) {
+            const d = ticketState[id];
+            if (!d) { showToast("車票資料尚未載入，請稍後再試", "error"); return; }
+            const row = (label, val) => `<div style="display:flex; justify-content:space-between; border-bottom:1px dashed #e2e8f0; padding:4px 0;"><span style="color:#888;">${esc(label)}</span><strong>${esc(val)}</strong></div>`;
+            document.getElementById('receiptBody').innerHTML =
+                row('訂單編號', id) +
+                row('乘車旅客', d.passengerName || d.buyerName || '-') +
+                row('行程', `${d.origin} 至 ${d.destination}`) +
+                row('乘車日期時間', `${d.date} ${d.time}`) +
+                (d.seatNumber ? row('座位編號', d.seatNumber) : '') +
+                row('票價', `HK$ ${d.price}`) +
+                row('購買時間', fmtTs(d.purchasedAt)) +
+                row('狀態', d.status === 'boarded' ? '已上車' : '未上車');
+            document.getElementById('receiptModal').classList.add('show');
+        };
+
+        window.closeReceipt = function() {
+            document.getElementById('receiptModal').classList.remove('show');
+        };
 
         // 掛載到 window 供 HTML inline 事件調用
         Object.assign(window, {
             showToast, toggleAuth, handleRegister, handleLogin, logout,
             switchView, renderProfile, toggleIdFields, checkAge, handleAddPassenger,
             deletePassenger, updateOrigins, updateDestinations, updateDates,
-            updateTimes, handleTimeChange, handlePassengerCheck, purchaseTicket,
+            updateTimes, handleTimeChange, handlePassengerCheck,
             deleteTicket, renderMyTickets, openMultipleTicketDetail
         });
 
@@ -1276,6 +1838,10 @@
         });
 
         window.onload = function() {
+            setupPwaManifest();
+            registerServiceWorker();
+            applyLanguage(currentLang);
+            refreshBiometricUi();
             if (sessionStorage.getItem('currentUser')) initApp();
         };
     </script>
