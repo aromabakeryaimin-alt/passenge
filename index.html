@@ -131,6 +131,30 @@
         .ticket-slide { min-width: 100%; scroll-snap-align: center; flex-shrink: 0; }
         .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
         .screenshot-tip { color: var(--danger); font-size: 14px; margin-top: 20px; font-weight: 700; text-align: center; }
+
+        .ticket-wrap { position: relative; }
+        .ticket-card { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 18px 14px; transition: clip-path .4s; }
+        .ticket-card.torn { clip-path: polygon(0 0, calc(100% - 46px) 0, 100% 46px, 100% 100%, 0 100%); }
+        .tear-piece { position: absolute; top: 0; right: 0; width: 46px; height: 46px; background: #cbd5e1; clip-path: polygon(0 0, 100% 0, 100% 100%); border-top-right-radius: 18px; opacity: 0; pointer-events: none; }
+        .ticket-wrap.tearing .tear-piece { animation: tearOff 1.1s ease-in forwards; }
+        @keyframes tearOff { 0% { opacity: 1; transform: none; } 30% { transform: rotate(18deg) translate(4px,-6px); } 100% { opacity: 0; transform: rotate(70deg) translate(60px, 220px); } }
+        .stamp { display: none; position: absolute; top: 46%; left: 50%; font-size: 34px; font-weight: 800; color: rgba(239,68,68,.75); border: 4px solid rgba(239,68,68,.75); padding: 4px 16px; border-radius: 10px; transform: translate(-50%,-50%) rotate(-14deg); pointer-events: none; letter-spacing: 4px; }
+        .ticket-card.torn .stamp { display: block; animation: stampIn .35s cubic-bezier(.2,1.6,.4,1) .5s both; }
+        @keyframes stampIn { from { opacity: 0; transform: translate(-50%,-50%) rotate(-14deg) scale(2.2); } to { opacity: 1; transform: translate(-50%,-50%) rotate(-14deg) scale(1); } }
+        .ticket-card.torn .qr-large { filter: grayscale(1); opacity: .25; }
+        .qr-bar { height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: -12px auto 6px; width: 240px; }
+        .qr-bar i { display: block; height: 100%; width: 100%; background: var(--primary); transition: width 1s linear; }
+        .qr-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+        .timeline { text-align: left; margin-top: 18px; padding-left: 6px; }
+        .tl-step { position: relative; padding: 0 0 18px 28px; font-size: 14px; color: var(--text-muted); }
+        .tl-step:last-child { padding-bottom: 0; }
+        .tl-step::before { content: ''; position: absolute; left: 6px; top: 14px; bottom: -2px; width: 2px; background: #e2e8f0; }
+        .tl-step:last-child::before { display: none; }
+        .tl-dot { position: absolute; left: 0; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #cbd5e1; }
+        .tl-step.done { color: var(--text-main); } .tl-step.done .tl-dot { background: var(--primary); } .tl-step.done::before { background: var(--primary); }
+        .tl-step.cur .tl-dot { background: #fff; border: 3px solid var(--primary); animation: pulse 1.6s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(15,118,110,.5); } 100% { box-shadow: 0 0 0 10px rgba(15,118,110,0); } }
+        .tl-step b { display: block; font-size: 14px; } .tl-step span { font-size: 12px; }
     </style>
 </head>
 <body>
@@ -263,7 +287,7 @@
             <div id="ticketCarousel" class="carousel-container"></div>
             
             <div class="screenshot-tip">
-                <i class="fas fa-exclamation-circle"></i> 建議保存截圖以免無網絡時查看
+                <i class="fas fa-shield-alt"></i> 二維碼為動態刷新，截圖或轉發無法使用
             </div>
 
             <button class="btn-secondary" style="margin-top: 20px;" onclick="window.switchView('tickets')">
@@ -376,6 +400,15 @@
             crypto.getRandomValues(b);
             return 'TKT-' + Array.from(b, x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
         }
+
+
+        async function hmacHex(secret, msg) {
+            const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+            const sig = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg));
+            return Array.from(new Uint8Array(sig)).slice(0, 5).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        const genSecret = () => { const b = new Uint8Array(16); crypto.getRandomValues(b); return Array.from(b, x => x.toString(16).padStart(2, "0")).join(""); };
 
         function calcAge(dobStr) {
             const birth = new Date(dobStr), today = new Date();
@@ -816,6 +849,7 @@
                 const ticketId = genTicketId();
                 const ticketData = {
                     ticketId,
+                    secret: genSecret(), // 動態 QR 簽名密鑰
                     origin: sch.origin, destination: sch.destination, date: sch.date, time: sch.time,
                     price: Number(sch.price),
                     status: 'pending',
@@ -909,9 +943,15 @@
                 const slide = document.createElement('div');
                 slide.className = 'ticket-slide';
                 slide.innerHTML = `
+                  <div class="ticket-wrap" id="tdWrap-${esc(id)}"><div class="ticket-card" id="tdCard-${esc(id)}" data-status="pending">
+                    <div class="stamp">已上車</div>
                     <div id="tdStatus-${esc(id)}" class="status-badge status-pending"><i class="fas fa-clock"></i> 狀態：未上車</div>
                     <div class="qr-large" id="tdQrCode-${esc(id)}"></div>
+                    <div class="qr-bar"><i id="tdBar-${esc(id)}"></i></div>
+                    <div class="qr-hint" id="tdHint-${esc(id)}"><i class="fas fa-sync-alt"></i> 二維碼每 30 秒自動更新，截圖無效</div>
                     <div class="ticket-detail-info" id="tdInfo-${esc(id)}">載入中...</div>
+                    <div class="timeline" id="tdTime-${esc(id)}"></div>
+                  </div><div class="tear-piece"></div></div>
                     <div id="tdDelete-${esc(id)}" style="display:none; margin-top:15px;">
                         <button class="btn-danger" style="width:100%;" onclick="window.deleteTicket('${esc(id)}')">
                             <i class="fas fa-trash-alt"></i> 刪除此車票紀錄
@@ -930,6 +970,9 @@
                 currentTicketListeners.push(unsub);
             });
 
+            const timer = setInterval(() => ticketIds.forEach(tick), 1000);
+            currentTicketListeners.push(() => clearInterval(timer));
+
             // 用 onscroll 賦值，避免重複開啟時疊加多個監聽器
             carousel.onscroll = () => {
                 const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
@@ -937,42 +980,72 @@
             };
         }
 
+        function fmtTs(ts) {
+            const d = new Date(ts), p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+        }
+
+        // 動態防截圖 QR：內容 = 票號|30秒時間窗|HMAC簽名，截圖過期即失效
+        const ticketState = {};
+        async function drawQr(id) {
+            const d = ticketState[id], el = document.getElementById(`tdQrCode-${id}`);
+            if (!d || !el || d.status === 'boarded') return;
+            const w = Math.floor(Date.now() / 30000);
+            if (el.dataset.w === String(w)) return;
+            el.dataset.w = String(w);
+            const text = d.secret ? `${id}|${w}|${await hmacHex(d.secret, id + '|' + w)}` : id;
+            el.innerHTML = '';
+            new QRCode(el, { text, width: 220, height: 220, colorDark: "#1e293b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+        }
+
+        function renderTimeline(id) {
+            const d = ticketState[id], el = document.getElementById(`tdTime-${id}`);
+            if (!d || !el) return;
+            const boarded = d.status === 'boarded';
+            const left = new Date(`${d.date}T${d.time}:00`) - Date.now();
+            const h = Math.floor(left / 3600000), m = Math.floor(left % 3600000 / 60000);
+            const leftTxt = left <= 0 ? '已過發車時間' : (h >= 24 ? `距開車 ${Math.floor(h / 24)} 天 ${h % 24} 小時` : `距開車 ${h} 小時 ${m} 分`);
+            el.innerHTML = `
+                <div class="tl-step done"><i class="tl-dot"></i><b>已購票</b><span>${fmtTs(d.purchasedAt)}</span></div>
+                <div class="tl-step ${boarded ? 'done' : 'cur'}"><i class="tl-dot"></i><b>候車 · ${esc(d.origin)}</b><span>${esc(d.date)} ${esc(d.time)} 開出${boarded ? '' : ' · ' + leftTxt}</span></div>
+                <div class="tl-step ${boarded ? 'done' : ''}"><i class="tl-dot"></i><b>${boarded ? '已上車' : '待驗票上車'}</b><span>${boarded && d.lastUsedAt ? fmtTs(d.lastUsedAt) : '請出示動態二維碼'}</span></div>`;
+        }
+
+        function tick(id) {
+            const bar = document.getElementById(`tdBar-${id}`);
+            if (bar) bar.style.width = (100 - (Date.now() % 30000) / 300) + '%';
+            drawQr(id); renderTimeline(id);
+        }
+
         function renderSingleTicketData(id, data) {
-            const statusEl = document.getElementById(`tdStatus-${id}`);
-            const qrEl = document.getElementById(`tdQrCode-${id}`);
-            const infoEl = document.getElementById(`tdInfo-${id}`);
-            const delEl = document.getElementById(`tdDelete-${id}`);
-            if (!statusEl) return;
+            const $ = (k) => document.getElementById(`${k}-${id}`);
+            const card = $('tdCard');
+            if (!card) return;
+            const was = card.dataset.status;
+            const boarded = data.status === 'boarded';
+            ticketState[id] = data;
 
-            if (data.status === 'boarded') {
-                statusEl.className = 'status-badge status-boarded';
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> 狀態：已上車';
-                delEl.style.display = 'block';
+            if (boarded) {
+                $('tdStatus').className = 'status-badge status-boarded';
+                $('tdStatus').innerHTML = '<i class="fas fa-check-circle"></i> 狀態：已上車';
+                $('tdDelete').style.display = 'block';
+                $('tdHint').textContent = '此票已使用';
+                $('tdBar').parentElement.style.display = 'none';
+                card.classList.add('torn');
+                if (was === 'pending') { $('tdWrap').classList.add('tearing'); if (navigator.vibrate) navigator.vibrate([120, 60, 200]); }
             } else {
-                statusEl.className = 'status-badge status-pending';
-                statusEl.innerHTML = '<i class="fas fa-clock"></i> 狀態：未上車';
-                delEl.style.display = 'none';
+                $('tdStatus').className = 'status-badge status-pending';
+                $('tdStatus').innerHTML = '<i class="fas fa-clock"></i> 狀態：未上車';
+                $('tdDelete').style.display = 'none';
             }
+            card.dataset.status = data.status;
 
-            // QR Code 內容不變，只需繪製一次
-            if (!qrEl.dataset.drawn) {
-                new QRCode(qrEl, { text: id, width: 220, height: 220, colorDark: "#1e293b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
-                qrEl.dataset.drawn = '1';
-            }
-
-            const d = new Date(data.purchasedAt);
-            const p2 = (n) => String(n).padStart(2, '0');
-            const dateStr = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
-
-            infoEl.innerHTML = `
+            $('tdInfo').innerHTML = `
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-user"></i> 乘車旅客：</span><strong>${esc(data.passengerName || data.buyerName)}</strong></div>
-                ${data.passengerDocId ? `<div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-id-card"></i> 證件號碼：</span><strong>${esc(data.passengerDocId)}</strong></div>` : ''}
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> 車票地點：</span><strong>${esc(data.origin)} 至 ${esc(data.destination)}</strong></div>
-                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="far fa-calendar-check"></i> 乘車時間：</span><strong>${esc(data.date)} ${esc(data.time)}</strong></div>
                 <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-dollar-sign"></i> 車票價格：</span><strong style="color:var(--primary);">HK$ ${esc(data.price)}</strong></div>
-                <div style="margin-bottom: 8px;"><span style="color:var(--text-muted);"><i class="fas fa-shopping-cart"></i> 購買日期：</span><strong>${dateStr}</strong></div>
-                <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">訂單編號: ${esc(id)}</div>
-            `;
+                <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center; border-top:1px solid var(--border); padding-top:10px;">訂單編號: ${esc(id)}</div>`;
+            tick(id);
         }
 
         // 掛載到 window 供 HTML inline 事件調用
