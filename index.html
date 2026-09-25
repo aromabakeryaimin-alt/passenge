@@ -287,6 +287,17 @@
             <p>享受快捷、便利的無紙化乘車體驗</p>
         </div>
 
+        <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; cursor:pointer;" onclick="window.switchView('wallet')">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:42px; height:42px; border-radius:50%; background:var(--night); color:#F4D992; display:flex; align-items:center; justify-content:center; font-size:18px;"><i class="fas fa-wallet"></i></div>
+                <div>
+                    <div style="font-size:12px; color:var(--text-muted);">銀包餘額</div>
+                    <strong id="homeWalletBalance" style="font-size:18px; color:var(--text-main);">HK$ 0</strong>
+                </div>
+            </div>
+            <span style="color:var(--primary); font-size:13px; font-weight:600;">增值 <i class="fas fa-chevron-right"></i></span>
+        </div>
+
         <div class="card">
             <h2 class="card-title"><i class="fas fa-ticket-alt" style="color:var(--primary);"></i> 購買車票</h2>
             <div class="form-group">
@@ -312,9 +323,10 @@
             </div>
 
             <div id="priceDisplay" class="price-display">HK$ 0</div>
+            <div id="walletInsufficientHint" style="display:none; text-align:center; color:var(--danger); font-size:13px; margin:-10px 0 14px;"><i class="fas fa-exclamation-circle"></i> 銀包餘額不足，請先增值</div>
 
             <button id="btnBuy" class="btn-primary" disabled onclick="window.purchaseTicket()">
-                <i class="fas fa-credit-card"></i> 確認付款並取票
+                <i class="fas fa-wallet"></i> 以銀包餘額扣款取票
             </button>
         </div>
     </div>
@@ -407,9 +419,34 @@
         </div>
     </div>
 
+    <!-- 視圖：銀包 -->
+    <div class="container" id="viewWallet" style="display: none;">
+        <div class="hero-banner" style="background: linear-gradient(135deg, var(--night) 0%, #3A2F5E 100%); box-shadow: 0 10px 15px -3px rgba(27,42,74,.3);">
+            <i class="fas fa-wallet hero-icon"></i>
+            <p style="margin:0 0 4px 0; opacity:.85; font-size:13px;">銀包餘額</p>
+            <h2 id="walletBalanceText" style="font-size:34px;">HK$ 0</h2>
+        </div>
+
+        <div class="card" style="text-align:center;">
+            <h2 class="card-title" style="justify-content:center; border-bottom:none;"><i class="fas fa-qrcode" style="color:var(--primary);"></i> 個人增值二維碼</h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-top:-8px;">出示此碼給職員，職員確認收款後為您增值</p>
+            <div class="qr-large" id="walletQrCode" style="margin:0 auto 14px;"></div>
+            <div class="qr-bar" id="walletQrBarWrap"><i id="walletQrBar"></i></div>
+            <div class="qr-hint"><i class="fas fa-sync-alt"></i> 二維碼每 10 分鐘自動更新一次</div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-receipt" style="color:var(--primary);"></i> 最近紀錄</h2>
+            <div id="walletTxList"><div class="empty-state" style="padding:20px;"><i class="fas fa-inbox"></i><p style="font-size:13px;">尚無增值或扣款紀錄</p></div></div>
+        </div>
+    </div>
+
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" id="navHome" onclick="window.switchView('home')">
             <i class="fas fa-home"></i> 購票
+        </div>
+        <div class="nav-item" id="navWallet" onclick="window.switchView('wallet')">
+            <i class="fas fa-wallet"></i> 銀包
         </div>
         <div class="nav-item" id="navMyTickets" onclick="window.switchView('tickets')">
             <i class="fas fa-qrcode"></i> 車票
@@ -421,7 +458,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, child, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, get, child, update, onValue, remove, push, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCq_8FSy5JU9-ETd1F3whQHwXC_fY1uqdo",
@@ -479,6 +516,11 @@
         let unsubSchedules = null, unsubPassengers = null, unsubMyTickets = null;
         let scheduleTimer = null;
         let toastTimer = null;
+        // ---------- 銀包狀態 ----------
+        let walletBalance = 0;
+        let walletSecret = null;
+        let unsubWallet = null, unsubWalletTx = null;
+        let walletQrTimer = null;
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toastBox');
@@ -558,8 +600,8 @@
                     try { await update(ref(db, `users/${userKey}`), { passwordHash: hashedPassword, password: null }); } catch (e) {}
                 }
 
-                // 不把密碼（雜湊）、乘客證件等敏感資料存入 sessionStorage
-                const { passwordHash, password, passengers, myTickets, ...safeUser } = user;
+                // 不把密碼（雜湊）、乘客證件、銀包密鑰等敏感資料存入 sessionStorage
+                const { passwordHash, password, passengers, myTickets, walletSecret, ...safeUser } = user;
                 safeUser.userKey = userKey;
                 sessionStorage.setItem('currentUser', JSON.stringify(safeUser));
                 initApp();
@@ -584,6 +626,7 @@
             document.getElementById('welcomeText').textContent = `歡迎回來，${currentUser.name}`;
             switchView('home');
             startSchedulesListener();
+            startWalletListener();
         }
 
         function switchView(view) {
@@ -591,20 +634,24 @@
                 currentTicketListeners.forEach(unsub => unsub());
                 currentTicketListeners = [];
             }
+            if (view !== 'wallet' && walletQrTimer) { clearInterval(walletQrTimer); walletQrTimer = null; }
             document.getElementById('viewHome').style.display = view === 'home' ? 'block' : 'none';
+            document.getElementById('viewWallet').style.display = view === 'wallet' ? 'block' : 'none';
             document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
             document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
             document.getElementById('viewTicketDetail').style.display = view === 'ticketDetail' ? 'block' : 'none';
-            const activeMap = { home: 'viewHome', tickets: 'viewMyTickets', profile: 'viewProfile', ticketDetail: 'viewTicketDetail' };
+            const activeMap = { home: 'viewHome', wallet: 'viewWallet', tickets: 'viewMyTickets', profile: 'viewProfile', ticketDetail: 'viewTicketDetail' };
             const activeEl = document.getElementById(activeMap[view]);
             if (activeEl) { activeEl.classList.remove('view-anim'); void activeEl.offsetWidth; activeEl.classList.add('view-anim'); }
 
             document.getElementById('navHome').className = view === 'home' ? 'nav-item active' : 'nav-item';
+            document.getElementById('navWallet').className = view === 'wallet' ? 'nav-item active' : 'nav-item';
             document.getElementById('navMyTickets').className = (view === 'tickets' || view === 'ticketDetail') ? 'nav-item active' : 'nav-item';
             document.getElementById('navProfile').className = view === 'profile' ? 'nav-item active' : 'nav-item';
 
             if (view === 'tickets') renderMyTickets();
             if (view === 'profile') renderProfile();
+            if (view === 'wallet') startWalletQrLoop();
             window.scrollTo(0, 0);
         }
 
@@ -705,7 +752,74 @@
             });
         }
 
-        // ---------- 班次選擇 ----------
+        // ---------- 銀包 ----------
+        // 每位會員的增值二維碼密鑰只在第一次需要時產生，之後固定不變（QR 內容靠時間窗變動，密鑰本身不需常換）
+        async function ensureWalletSecret() {
+            if (walletSecret) return walletSecret;
+            const snap = await get(child(ref(db), `users/${currentUser.userKey}/walletSecret`));
+            if (snap.exists()) { walletSecret = snap.val(); return walletSecret; }
+            const s = genSecret();
+            await set(ref(db, `users/${currentUser.userKey}/walletSecret`), s);
+            walletSecret = s;
+            return s;
+        }
+
+        function startWalletListener() {
+            if (unsubWallet) return;
+            unsubWallet = onValue(ref(db, `users/${currentUser.userKey}/walletBalance`), (snap) => {
+                walletBalance = Number(snap.val()) || 0;
+                const txt = `HK$ ${walletBalance}`;
+                const a = document.getElementById('walletBalanceText'); if (a) a.textContent = txt;
+                const b = document.getElementById('homeWalletBalance'); if (b) b.textContent = txt;
+                updateTotalPrice(); // 餘額變動時同步更新購票按鈕/提示狀態
+            });
+            unsubWalletTx = onValue(ref(db, `users/${currentUser.userKey}/walletTx`), (snap) => renderWalletTx(snap.val() || {}));
+        }
+
+        function renderWalletTx(txMap) {
+            const list = document.getElementById('walletTxList');
+            if (!list) return;
+            const arr = Object.values(txMap).sort((a, b) => b.at - a.at).slice(0, 15);
+            if (arr.length === 0) { list.innerHTML = `<div class="empty-state" style="padding:20px;"><i class="fas fa-inbox"></i><p style="font-size:13px;">尚無增值或扣款紀錄</p></div>`; return; }
+            const p2 = (n) => String(n).padStart(2, '0');
+            list.innerHTML = arr.map(t => {
+                const d = new Date(t.at);
+                const dateStr = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+                const isTopup = t.type === 'topup';
+                return `<div class="list-item" style="padding:12px 14px;">
+                    <div class="list-info">
+                        <strong style="font-size:14px;"><i class="fas ${isTopup ? 'fa-plus-circle' : 'fa-ticket-alt'}" style="color:${isTopup ? 'var(--success)' : 'var(--danger)'};"></i> ${isTopup ? '銀包增值' : '購票扣款'}</strong>
+                        <span style="font-size:12px;">${esc(dateStr)}${isTopup && t.staffId ? ' · 職員: ' + esc(t.staffId) : ''}</span>
+                    </div>
+                    <strong style="color:${isTopup ? 'var(--success)' : 'var(--danger)'};">${isTopup ? '+' : '-'}HK$ ${esc(t.amount)}</strong>
+                </div>`;
+            }).join('');
+        }
+
+        // 增值 QR：內容 = WALLET|會員key|10分鐘時間窗|HMAC簽名，讓職員掃碼核實身份與時效
+        async function drawWalletQr() {
+            const secret = await ensureWalletSecret();
+            const el = document.getElementById('walletQrCode');
+            if (!el) return;
+            const w = Math.floor(Date.now() / 600000);
+            if (el.dataset.w === String(w)) return;
+            el.dataset.w = String(w);
+            const text = `WALLET|${currentUser.userKey}|${w}|${await hmacHex(secret, `${currentUser.userKey}|${w}`)}`;
+            el.innerHTML = '';
+            new QRCode(el, { text, width: 220, height: 220, colorDark: "#1e293b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+        }
+
+        function startWalletQrLoop() {
+            drawWalletQr();
+            if (walletQrTimer) clearInterval(walletQrTimer);
+            walletQrTimer = setInterval(() => {
+                const bar = document.getElementById('walletQrBar');
+                if (bar) bar.style.width = (100 - (Date.now() % 600000) / 6000) + '%';
+                drawWalletQr();
+            }, 1000);
+        }
+
+
         function applyScheduleFilter() {
             const now = new Date();
             allSchedules = rawSchedules.filter(s => s && s.date && s.time && new Date(`${s.date}T${s.time}:00`) > now);
@@ -859,14 +973,18 @@
             const count = document.querySelectorAll('.pass-cb:checked').length;
             const pd = document.getElementById('priceDisplay');
             const btn = document.getElementById('btnBuy');
+            const hint = document.getElementById('walletInsufficientHint');
             if (count > 0 && currentSelectedSchedule) {
                 const total = Number(currentSelectedSchedule.price) * count;
                 pd.innerHTML = `HK$ ${total} <span style="font-size:14px; font-weight:normal; color:var(--text-muted);">(${count}位乘客)</span>`;
                 pd.style.display = 'block';
                 pd.classList.remove('price-pop'); void pd.offsetWidth; pd.classList.add('price-pop');
-                btn.disabled = false;
+                const enough = walletBalance >= total;
+                hint.style.display = enough ? 'none' : 'block';
+                btn.disabled = !enough;
             } else {
                 pd.style.display = 'none';
+                hint.style.display = 'none';
                 btn.disabled = true;
             }
         }
@@ -894,6 +1012,7 @@
             document.getElementById('passengerSelectGroup').style.display = 'none';
             document.getElementById('passengerCheckboxesList').innerHTML = '';
             document.getElementById('priceDisplay').style.display = 'none';
+            document.getElementById('walletInsufficientHint').style.display = 'none';
             document.getElementById('btnBuy').disabled = true;
         }
 
@@ -909,10 +1028,29 @@
                 showToast("此班次已下架或已開出，請重新選擇", "error"); return;
             }
 
+            const total = Number(sch.price) * checkedBoxes.length;
             const btn = document.getElementById('btnBuy');
-            const btnHtml = '<i class="fas fa-credit-card"></i> 確認付款並取票';
+            const btnHtml = '<i class="fas fa-wallet"></i> 以銀包餘額扣款取票';
             btn.innerHTML = '<div class="loader"></div>';
             btn.disabled = true;
+
+            // 先用 transaction 從銀包原子扣款，避免同時開兩個分頁重複下單超支
+            const walletRef = ref(db, `users/${currentUser.userKey}/walletBalance`);
+            let deducted = false;
+            try {
+                const result = await runTransaction(walletRef, (bal) => {
+                    bal = Number(bal) || 0;
+                    if (bal < total) return; // 中止交易
+                    return bal - total;
+                });
+                if (!result.committed) { showToast("銀包餘額不足，請先增值", "error"); return; }
+                deducted = true;
+            } catch (e) {
+                showToast("扣款失敗，請檢查網絡", "error"); return;
+            } finally {
+                btn.innerHTML = btnHtml;
+                btn.disabled = document.querySelectorAll('.pass-cb:checked').length === 0;
+            }
 
             const selectedPassengers = Array.from(checkedBoxes).map(cb => savedPassengersList.find(p => p.id === cb.value)).filter(Boolean);
             const ids = [];
@@ -939,6 +1077,8 @@
                 updates[`users/${currentUser.userKey}/myTickets/${ticketId}`] = ticketData;
                 ids.push(ticketId);
             });
+            const txId = push(ref(db, `users/${currentUser.userKey}/walletTx`)).key;
+            updates[`users/${currentUser.userKey}/walletTx/${txId}`] = { type: 'purchase', amount: total, at: Date.now(), ticketIds: ids };
 
             try {
                 await update(ref(db), updates); // 一次原子寫入：要麼全部成功，要麼全部失敗
@@ -948,10 +1088,9 @@
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
                 openMultipleTicketDetail(ids);
             } catch (e) {
-                showToast("購票失敗，請檢查網絡連線", "error");
-            } finally {
-                btn.innerHTML = btnHtml;
-                btn.disabled = document.querySelectorAll('.pass-cb:checked').length === 0;
+                // 出票失敗，把扣掉的銀包餘額退回
+                if (deducted) { try { await runTransaction(walletRef, (bal) => (Number(bal) || 0) + total); } catch (e2) {} }
+                showToast("購票失敗，已退回銀包餘額，請檢查網絡連線", "error");
             }
         }
 
