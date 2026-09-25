@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>乘客智能購票系統</title>
+    <title>瑞里智能購票系統</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --primary: #0f766e; --primary-hover: #0d5f58; --bg: #f8fafc; --surface: #ffffff;
-            --text-main: #1e293b; --text-muted: #64748b; --border: #e2e8f0;
-            --success: #10b981; --danger: #ef4444;
+            /* 中秋節限定暖色主題：以桂花金取代原本的冷色系，節慶結束後可改回 #0f766e 系列 */
+            --primary: #B8842E; --primary-hover: #9C6E22; --bg: #FBF6EC; --surface: #ffffff;
+            --text-main: #2A2118; --text-muted: #8A7A5C; --border: #EBE0C8;
+            --success: #10b981; --danger: #ef4444; --festive: #B4483C; --night: #1B2A4A;
         }
         * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text-main); padding-bottom: 80px; }
@@ -29,26 +30,61 @@
         .header .logout-btn { color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
 
         .container { padding: 20px; max-width: 600px; margin: 0 auto; }
+
+        /* ===== 動畫 ===== */
+        @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .view-anim { animation: viewIn .35s cubic-bezier(.2,.8,.3,1) both; }
+
+        @keyframes toastPop { 0% { transform: translate(-50%,-16px) scale(.9); opacity: 0; } 60% { transform: translate(-50%,4px) scale(1.03); opacity: 1; } 100% { transform: translate(-50%,0) scale(1); opacity: 1; } }
+        .toast.show { top: 20px; animation: toastPop .35s cubic-bezier(.2,1.4,.4,1) both; }
+
+        button, .nav-item, select, input[type="checkbox"] { transition: transform .15s ease; }
+        button:active { transform: scale(.96); }
+        .nav-item i { transition: transform .25s cubic-bezier(.3,1.6,.4,1); }
+
+        @keyframes cardPop { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .card { animation: cardPop .3s ease both; }
+
+        @keyframes petalFall { 0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; } 8% { opacity: .9; } 100% { transform: translateY(115vh) translateX(var(--drift,30px)) rotate(300deg); opacity: .1; } }
+        .petal { position: absolute; top: -5vh; font-size: 16px; pointer-events: none; z-index: 0; animation: petalFall linear infinite; filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+
+        @keyframes confettiFall { 0% { transform: translateY(-10px) rotate(0); opacity: 1; } 100% { transform: translateY(120vh) rotate(600deg); opacity: 0; } }
+        .confetti-piece { position: fixed; top: -10px; z-index: 9998; pointer-events: none; border-radius: 2px; animation: confettiFall 1.6s cubic-bezier(.3,.6,.5,1) forwards; }
+
+        @keyframes numberPop { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+        .price-pop { animation: numberPop .25s ease; }
+
+        @keyframes scanLine { 0% { top: 6%; } 50% { top: 92%; } 100% { top: 6%; } }
+
         
+        /* 中秋節限定：夜空 + 滿月背景，節慶結束後可把 background 改回單一淺色漸層 */
         #viewAuth {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background: linear-gradient(135deg, var(--bg) 0%, #e2e8f0 100%);
+            background: radial-gradient(circle at 50% 18%, #E8CE8A 0%, #C9A24E 6%, transparent 7%),
+                        linear-gradient(180deg, var(--night) 0%, #2C4270 45%, var(--bg) 45%, var(--bg) 100%);
             margin: 0 auto;
             padding: 20px;
+            position: relative;
+            overflow: hidden;
         }
-        #viewAuth .auth-logo { text-align: center; margin-bottom: 25px; color: var(--primary); font-size: 28px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        #viewAuth .auth-logo i { font-size: 42px; }
-        #viewAuth .card { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: none; width: 100%; max-width: 400px; margin: 0 auto; }
+        #viewAuth::before, #viewAuth::after { content: '🏮'; position: absolute; font-size: 30px; opacity: .85; animation: lanternSway 4s ease-in-out infinite; filter: drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
+        #viewAuth::before { top: 6%; left: 10%; animation-delay: .3s; }
+        #viewAuth::after { top: 4%; right: 11%; animation-delay: 1.1s; }
+        @keyframes lanternSway { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+        #viewAuth .auth-logo { text-align: center; margin-bottom: 20px; color: #FFF6DE; font-size: 26px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 1; }
+        #viewAuth .auth-logo i { font-size: 40px; color: #F4D992; }
+        #viewAuth .auth-tagline { text-align: center; color: #E7D9AE; font-size: 13px; margin: -12px 0 22px; position: relative; z-index: 1; }
+        #viewAuth .card { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: none; width: 100%; max-width: 400px; margin: 0 auto; position: relative; z-index: 1; }
 
-        .hero-banner { background: linear-gradient(135deg, var(--primary) 0%, #115e59 100%); color: white; padding: 25px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.2); position: relative; overflow: hidden; }
+        .hero-banner { background: linear-gradient(135deg, var(--primary) 0%, #8A5D18 100%); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(184, 132, 46, 0.25); position: relative; overflow: hidden; }
         .hero-banner h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 700; }
         .hero-banner p { margin: 0; font-size: 14px; opacity: 0.9; }
         .hero-icon { position: absolute; right: -10px; bottom: -20px; font-size: 100px; opacity: 0.1; }
 
-        .card { background: var(--surface); padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        .card { background: var(--surface); padding: 20px; border-radius: 22px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         .card-title { margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; font-weight: 600; }
 
         .form-group { margin-bottom: 16px; width: 100%; }
@@ -75,7 +111,7 @@
             appearance: none;
         }
         select { appearance: none; }
-        input:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
+        input:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(184, 132, 46, 0.15); }
         input:disabled, select:disabled { opacity: 0.6; background: #e2e8f0; cursor: not-allowed; }
         
         .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -84,15 +120,15 @@
 
         .price-display { font-size: 26px; font-weight: 700; color: var(--primary); text-align: center; margin: 20px 0; display: none; }
 
-        .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 18px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
         
-        .btn-secondary { width: 100%; background: white; color: var(--primary); border: 1px solid var(--primary); padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-secondary { width: 100%; background: white; color: var(--primary); border: 1px solid var(--primary); padding: 16px; border-radius: 18px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
         .btn-secondary:hover { background: #f1f5f9; }
         
-        .btn-small { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-small { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
 
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; display: none; }
         .nav-item { flex: 1; text-align: center; padding: 12px 0; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
@@ -100,7 +136,7 @@
         .nav-item i { display: block; font-size: 20px; margin-bottom: 4px; transition: transform 0.2s; }
         .nav-item.active i { transform: translateY(-2px); }
 
-        .list-item { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
+        .list-item { border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: white; }
         .list-info { font-size: 14px; }
         .list-info strong { display: block; font-size: 16px; margin-bottom: 4px; color: var(--text-main); }
         .list-info span { color: var(--text-muted); }
@@ -119,7 +155,7 @@
 
         .ticket-detail-wrapper { text-align: center; padding: 25px 20px; }
         .status-badge { display: inline-block; padding: 8px 20px; border-radius: 30px; font-size: 16px; font-weight: 700; color: white; margin: 15px 0 25px 0; letter-spacing: 1px; }
-        .status-pending { background-color: var(--primary); box-shadow: 0 4px 10px rgba(15, 118, 110, 0.3); }
+        .status-pending { background-color: var(--primary); box-shadow: 0 4px 10px rgba(184, 132, 46, 0.3); }
         .status-boarded { background-color: var(--text-muted); }
         
         .qr-large { display: flex; justify-content: center; margin: 0 auto 25px auto; padding: 20px; background: white; border-radius: 16px; border: 1px solid var(--border); width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -153,7 +189,7 @@
         .tl-dot { position: absolute; left: 0; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #cbd5e1; }
         .tl-step.done { color: var(--text-main); } .tl-step.done .tl-dot { background: var(--primary); } .tl-step.done::before { background: var(--primary); }
         .tl-step.cur .tl-dot { background: #fff; border: 3px solid var(--primary); animation: pulse 1.6s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(15,118,110,.5); } 100% { box-shadow: 0 0 0 10px rgba(15,118,110,0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(184,132,46,.5); } 100% { box-shadow: 0 0 0 10px rgba(184,132,46,0); } }
         .tl-step b { display: block; font-size: 14px; } .tl-step span { font-size: 12px; }
     </style>
 </head>
@@ -162,16 +198,25 @@
     <div id="toastBox" class="toast"></div>
 
     <div class="header" id="appHeader" style="display: none;">
-        <div class="brand"><i class="fas fa-bus-alt"></i> 智能客運</div>
+        <div class="brand"><i class="fas fa-bus-alt"></i> 瑞里智能購票系統</div>
         <button class="logout-btn" onclick="window.logout()"><i class="fas fa-sign-out-alt"></i> 登出</button>
     </div>
 
     <!-- 視圖：登入 / 註冊 -->
     <div id="viewAuth">
+        <!-- 中秋節限定飄葉動畫，活動結束後可整段刪除 -->
+        <span class="petal" style="left:8%; animation-duration:9s; animation-delay:0s; --drift:40px;">🍂</span>
+        <span class="petal" style="left:22%; animation-duration:11s; animation-delay:2s; --drift:-30px; font-size:13px;">🍁</span>
+        <span class="petal" style="left:38%; animation-duration:8s; animation-delay:4s; --drift:20px;">🍂</span>
+        <span class="petal" style="left:55%; animation-duration:12s; animation-delay:1s; --drift:-45px; font-size:14px;">🍁</span>
+        <span class="petal" style="left:70%; animation-duration:9.5s; animation-delay:3s; --drift:35px;">🍂</span>
+        <span class="petal" style="left:85%; animation-duration:10.5s; animation-delay:5s; --drift:-25px; font-size:13px;">🍁</span>
         <div class="auth-logo">
             <i class="fas fa-bus-alt"></i>
-            <div>智能客運系統</div>
+            <div>瑞里智能購票系統</div>
         </div>
+        <!-- 中秋節限定祝賀語，活動結束後可刪除此行 -->
+        <div class="auth-tagline">🌕 祝您中秋節快樂，闔家團圓</div>
 
         <div class="card" id="loginBox">
             <h2 class="card-title" style="justify-content: center; font-size: 18px; border-bottom: none;"><i class="fas fa-sign-in-alt"></i> 會員登入</h2>
@@ -230,6 +275,12 @@
 
     <!-- 視圖：首頁購票 -->
     <div class="container" id="viewHome" style="display: none;">
+        <!-- 中秋節限定祝賀橫幅，可自行按 × 關閉；活動結束後可整段刪除 -->
+        <div id="festiveBanner" style="background:linear-gradient(135deg,#3A2F5E,var(--night)); color:#FCEFCB; border-radius:18px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; box-shadow:0 6px 14px rgba(0,0,0,.12);">
+            <span style="font-size:26px;">🌕</span>
+            <span style="flex:1; font-size:13px; line-height:1.5;">瑞里智能購票系統祝您<strong>中秋節快樂</strong>，闔家團圓、出行順心！</span>
+            <button onclick="this.closest('#festiveBanner').style.display='none'" style="background:none; border:none; color:#FCEFCB; opacity:.7; font-size:16px; cursor:pointer;">✕</button>
+        </div>
         <div class="hero-banner">
             <i class="fas fa-route hero-icon"></i>
             <h2 id="welcomeText">歡迎乘搭</h2>
@@ -544,6 +595,9 @@
             document.getElementById('viewMyTickets').style.display = view === 'tickets' ? 'block' : 'none';
             document.getElementById('viewProfile').style.display = view === 'profile' ? 'block' : 'none';
             document.getElementById('viewTicketDetail').style.display = view === 'ticketDetail' ? 'block' : 'none';
+            const activeMap = { home: 'viewHome', tickets: 'viewMyTickets', profile: 'viewProfile', ticketDetail: 'viewTicketDetail' };
+            const activeEl = document.getElementById(activeMap[view]);
+            if (activeEl) { activeEl.classList.remove('view-anim'); void activeEl.offsetWidth; activeEl.classList.add('view-anim'); }
 
             document.getElementById('navHome').className = view === 'home' ? 'nav-item active' : 'nav-item';
             document.getElementById('navMyTickets').className = (view === 'tickets' || view === 'ticketDetail') ? 'nav-item active' : 'nav-item';
@@ -809,10 +863,29 @@
                 const total = Number(currentSelectedSchedule.price) * count;
                 pd.innerHTML = `HK$ ${total} <span style="font-size:14px; font-weight:normal; color:var(--text-muted);">(${count}位乘客)</span>`;
                 pd.style.display = 'block';
+                pd.classList.remove('price-pop'); void pd.offsetWidth; pd.classList.add('price-pop');
                 btn.disabled = false;
             } else {
                 pd.style.display = 'none';
                 btn.disabled = true;
+            }
+        }
+
+        // 慶祝購票成功的彩紙動畫（金/紅/白三色呼應中秋節配色）
+        function celebrateConfetti() {
+            const colors = ['#B8842E', '#B4483C', '#FCEFCB', '#F4D992'];
+            for (let i = 0; i < 26; i++) {
+                const p = document.createElement('div');
+                p.className = 'confetti-piece';
+                const size = 5 + Math.random() * 5;
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.width = size + 'px';
+                p.style.height = size * 1.6 + 'px';
+                p.style.background = colors[i % colors.length];
+                p.style.animationDelay = (Math.random() * .3) + 's';
+                p.style.animationDuration = (1.2 + Math.random() * .8) + 's';
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 2200);
             }
         }
 
@@ -870,6 +943,7 @@
             try {
                 await update(ref(db), updates); // 一次原子寫入：要麼全部成功，要麼全部失敗
                 showToast(`成功購買 ${ids.length} 張車票！`, "success");
+                celebrateConfetti();
                 document.getElementById('selOrigin').value = "";
                 resetDropdowns(['selDest', 'selDate', 'selTime']);
                 openMultipleTicketDetail(ids);
