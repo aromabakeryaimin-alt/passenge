@@ -11,10 +11,10 @@
     <meta name="theme-color" content="#B8842E">
     <style>
         :root {
-            /* 中秋節限定暖色主題：以桂花金取代原本的冷色系，節慶結束後可改回 #0f766e 系列 */
-            --primary: #B8842E; --primary-hover: #9C6E22; --bg: #FBF6EC; --surface: #ffffff;
-            --text-main: #2A2118; --text-muted: #8A7A5C; --border: #EBE0C8;
-            --success: #10b981; --danger: #ef4444; --festive: #B4483C; --night: #1B2A4A;
+            /* 全新設計方向：黑白灰為主，只留一個強烈主色（桂花金）作為視覺焦點 */
+            --primary: #B8842E; --primary-hover: #96691F; --bg: #FFFFFF; --surface: #ffffff;
+            --text-main: #111111; --text-muted: #767676; --border: #E7E7E7;
+            --success: #0F9D58; --danger: #E0483C;
         }
         * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text-main); padding-bottom: 80px; }
@@ -48,9 +48,6 @@
 
         @keyframes cardPop { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .card { animation: cardPop .3s ease both; }
-
-        @keyframes petalFall { 0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; } 8% { opacity: .9; } 100% { transform: translateY(115vh) translateX(var(--drift,30px)) rotate(300deg); opacity: .1; } }
-        .petal { position: absolute; top: -5vh; font-size: 16px; pointer-events: none; z-index: 0; animation: petalFall linear infinite; filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
 
         @keyframes confettiFall { 0% { transform: translateY(-10px) rotate(0); opacity: 1; } 100% { transform: translateY(120vh) rotate(600deg); opacity: 0; } }
         .confetti-piece { position: fixed; top: -10px; z-index: 9998; pointer-events: none; border-radius: 2px; animation: confettiFall 1.6s cubic-bezier(.3,.6,.5,1) forwards; }
@@ -133,26 +130,40 @@
         }
 
         /* 中秋節限定：夜空 + 滿月背景，節慶結束後可把 background 改回單一淺色漸層 */
+        /* ================= 登入頁：單一主色 + 大量留白（新設計方向） ================= */
         #viewAuth {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            background: radial-gradient(circle at 50% 18%, #E8CE8A 0%, #C9A24E 6%, transparent 7%),
-                        linear-gradient(180deg, var(--night) 0%, #2C4270 45%, var(--bg) 45%, var(--bg) 100%);
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
+            background: var(--bg);
         }
-        #viewAuth::before, #viewAuth::after { content: '🏮'; position: absolute; font-size: 30px; opacity: .85; animation: lanternSway 4s ease-in-out infinite; filter: drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
-        #viewAuth::before { top: 6%; left: 10%; animation-delay: .3s; }
-        #viewAuth::after { top: 4%; right: 11%; animation-delay: 1.1s; }
-        @keyframes lanternSway { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
-        #viewAuth .auth-logo { text-align: center; margin-bottom: 20px; color: #FFF6DE; font-size: 26px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 1; }
-        #viewAuth .auth-logo i { font-size: 40px; color: #F4D992; }
-        #viewAuth .auth-tagline { text-align: center; color: #E7D9AE; font-size: 13px; margin: -12px 0 22px; position: relative; z-index: 1; }
-        #viewAuth .card { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: none; width: 100%; max-width: 400px; margin: 0 auto; position: relative; z-index: 1; }
+        .auth-hero { padding: 13vh 32px 5vh; text-align: center; }
+        .auth-hero .wordmark { font-size: 58px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; color: var(--text-main); }
+        .auth-hero .wordmark .accent { color: var(--primary); }
+        .auth-hero .tagline { margin-top: 12px; font-size: 13px; color: var(--text-muted); letter-spacing: .5px; }
+
+        .auth-form-area { flex: 1; width: 100%; max-width: 380px; margin: 0 auto; padding: 0 32px 8vh; display: flex; flex-direction: column; justify-content: flex-end; }
+        .auth-step { display: none; }
+        .auth-step.active { display: block; }
+        .auth-step-back { background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 22px; display: flex; align-items: center; gap: 6px; }
+
+        .field-min { margin-bottom: 26px; }
+        .field-min label { display: block; font-size: 11px; color: var(--text-muted); letter-spacing: .6px; margin-bottom: 8px; }
+        .field-min .input-row { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid var(--border); padding-bottom: 10px; transition: border-color .2s; }
+        .field-min .input-row:focus-within { border-color: var(--primary); }
+        .field-min select { border: none; background: none; font-size: 16px; color: var(--text-main); font-weight: 600; padding-right: 4px; }
+        .field-min input { border: none; background: none; font-size: 21px; color: var(--text-main); flex: 1; outline: none; padding: 0; min-width: 0; }
+        .field-min input::placeholder { color: #C9C2AE; }
+
+        .btn-min { width: 100%; padding: 17px; border: none; border-radius: 999px; font-size: 15px; font-weight: 700; letter-spacing: .3px; cursor: pointer; }
+        .btn-min.dark { background: var(--text-main); color: #fff; }
+        .btn-min.accent { background: var(--primary); color: #fff; }
+        .btn-min:disabled { opacity: .3; cursor: not-allowed; }
+        .btn-min + .btn-min { margin-top: 12px; }
+        .btn-min-outline { width: 100%; padding: 16px; border-radius: 999px; background: none; border: 1px solid var(--border); color: var(--text-main); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+        .auth-switch { text-align: center; margin-top: 30px; font-size: 13px; color: var(--text-muted); }
+        .auth-switch a { color: var(--primary); text-decoration: none; font-weight: 700; cursor: pointer; }
 
         .hero-banner { background: linear-gradient(135deg, var(--primary) 0%, #8A5D18 100%); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(184, 132, 46, 0.25); position: relative; overflow: hidden; }
         .hero-banner h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 700; }
@@ -282,73 +293,76 @@
 
     <!-- 視圖：登入 / 註冊 -->
     <div id="viewAuth">
-        <!-- 中秋節限定飄葉動畫，活動結束後可整段刪除 -->
-        <span class="petal" style="left:8%; animation-duration:9s; animation-delay:0s; --drift:40px;">🍂</span>
-        <span class="petal" style="left:22%; animation-duration:11s; animation-delay:2s; --drift:-30px; font-size:13px;">🍁</span>
-        <span class="petal" style="left:38%; animation-duration:8s; animation-delay:4s; --drift:20px;">🍂</span>
-        <span class="petal" style="left:55%; animation-duration:12s; animation-delay:1s; --drift:-45px; font-size:14px;">🍁</span>
-        <span class="petal" style="left:70%; animation-duration:9.5s; animation-delay:3s; --drift:35px;">🍂</span>
-        <span class="petal" style="left:85%; animation-duration:10.5s; animation-delay:5s; --drift:-25px; font-size:13px;">🍁</span>
-        <div class="auth-logo">
-            <i class="fas fa-bus-alt"></i>
-            <div>瑞里智能購票系統</div>
-        </div>
-        <!-- 中秋節限定祝賀語，活動結束後可刪除此行 -->
-        <div class="auth-tagline">🌕 祝您中秋節快樂，闔家團圓</div>
-
-        <div class="card" id="loginBox">
-            <h2 class="card-title" style="justify-content: center; font-size: 18px; border-bottom: none;"><i class="fas fa-sign-in-alt"></i> 會員登入</h2>
-            <div class="form-group">
-                <label>手提電話</label>
-                <div class="input-group">
-                    <select id="loginRegion" style="width: 130px;">
-                        <option value="+86">中國 (+86)</option>
-                        <option value="+852" selected>香港 (+852)</option>
-                        <option value="+853">澳門 (+853)</option>
-                    </select>
-                    <input type="tel" id="loginPhone" placeholder="輸入電話號碼">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>密碼</label>
-                <input type="password" id="loginPassword" placeholder="輸入密碼">
-            </div>
-            <button class="btn-primary" onclick="window.handleLogin()">登入系統</button>
-            <button class="btn-secondary" id="btnBiometricLogin" style="display:none; margin-top:10px;" onclick="window.handleBiometricLogin()"><i class="fas fa-fingerprint"></i> 使用 Face ID / 指紋登入</button>
-            <button class="btn-secondary" onclick="window.toggleAuth('register')">註冊新帳號</button>
+        <div class="auth-hero">
+            <div class="wordmark">瑞里<span class="accent">·</span></div>
+            <div class="tagline">智能購票系統</div>
         </div>
 
-        <div class="card" id="registerBox" style="display: none;">
-            <h2 class="card-title" style="justify-content: center; font-size: 18px; border-bottom: none;"><i class="fas fa-user-plus"></i> 註冊新帳號</h2>
-            <div class="form-group">
-                <label>真實名稱</label>
-                <input type="text" id="regName" placeholder="例如: 陳大文">
-            </div>
-            <div class="form-group">
-                <label>手提電話</label>
-                <div class="input-group">
-                    <select id="regRegion" style="width: 130px;">
-                        <option value="+86">中國 (+86)</option>
-                        <option value="+852" selected>香港 (+852)</option>
-                        <option value="+853">澳門 (+853)</option>
-                    </select>
-                    <input type="tel" id="regPhone" placeholder="輸入電話號碼">
+        <div class="auth-form-area">
+            <!-- 登入：分步輸入，一次只問一件事 -->
+            <div id="loginBox">
+                <div class="auth-step active" id="loginStepPhone">
+                    <div class="field-min">
+                        <label>手提電話</label>
+                        <div class="input-row">
+                            <select id="loginRegion">
+                                <option value="+86">+86</option>
+                                <option value="+852" selected>+852</option>
+                                <option value="+853">+853</option>
+                            </select>
+                            <input type="tel" id="loginPhone" placeholder="輸入電話號碼" autocomplete="tel">
+                        </div>
+                    </div>
+                    <button class="btn-min dark" onclick="window.goToPasswordStep()">繼續</button>
+                    <button class="btn-min-outline" id="btnBiometricLogin" style="display:none; margin-top:12px;" onclick="window.handleBiometricLogin()"><i class="fas fa-fingerprint"></i>&nbsp; 使用 Face ID / 指紋登入</button>
                 </div>
+
+                <div class="auth-step" id="loginStepPassword">
+                    <button class="auth-step-back" onclick="window.backToPhoneStep()"><i class="fas fa-arrow-left"></i> 更改電話號碼</button>
+                    <div class="field-min">
+                        <label>密碼</label>
+                        <div class="input-row">
+                            <input type="password" id="loginPassword" placeholder="輸入密碼" autocomplete="current-password">
+                        </div>
+                    </div>
+                    <button class="btn-min accent" onclick="window.handleLogin()">登入</button>
+                </div>
+
+                <div class="auth-switch">還沒有帳號？<a onclick="window.toggleAuth('register')">立即註冊</a></div>
             </div>
-            <div class="form-group">
-                <label>出生年月日</label>
-                <input type="date" id="regDob">
+
+            <!-- 註冊 -->
+            <div id="registerBox" style="display: none;">
+                <div class="field-min">
+                    <label>真實名稱</label>
+                    <div class="input-row"><input type="text" id="regName" placeholder="例如: 陳大文"></div>
+                </div>
+                <div class="field-min">
+                    <label>手提電話</label>
+                    <div class="input-row">
+                        <select id="regRegion">
+                            <option value="+86">+86</option>
+                            <option value="+852" selected>+852</option>
+                            <option value="+853">+853</option>
+                        </select>
+                        <input type="tel" id="regPhone" placeholder="輸入電話號碼">
+                    </div>
+                </div>
+                <div class="field-min">
+                    <label>出生年月日</label>
+                    <div class="input-row"><input type="date" id="regDob"></div>
+                </div>
+                <div class="field-min">
+                    <label>國籍</label>
+                    <div class="input-row"><input type="text" id="regNationality" placeholder="例如: 中國香港"></div>
+                </div>
+                <div class="field-min">
+                    <label>設定密碼（至少8位，須包含英文及數字）</label>
+                    <div class="input-row"><input type="password" id="regPassword" placeholder="輸入符合要求的密碼"></div>
+                </div>
+                <button class="btn-min accent" onclick="window.handleRegister()">確認註冊</button>
+                <div class="auth-switch">已經有帳號？<a onclick="window.toggleAuth('login')">返回登入</a></div>
             </div>
-            <div class="form-group">
-                <label>國籍</label>
-                <input type="text" id="regNationality" placeholder="例如: 中國香港">
-            </div>
-            <div class="form-group">
-                <label>註冊密碼 (至少8位，須包含英文及數字)</label>
-                <input type="password" id="regPassword" placeholder="輸入符合要求的密碼">
-            </div>
-            <button class="btn-primary" onclick="window.handleRegister()">確認註冊</button>
-            <button class="btn-secondary" onclick="window.toggleAuth('login')">返回登入</button>
         </div>
     </div>
 
@@ -1189,7 +1203,21 @@
         function toggleAuth(mode) {
             document.getElementById('loginBox').style.display = mode === 'login' ? 'block' : 'none';
             document.getElementById('registerBox').style.display = mode === 'register' ? 'block' : 'none';
+            if (mode === 'login') window.backToPhoneStep(); // 每次回到登入都重新從電話號碼開始問
         }
+
+        // 登入分步：先問電話，按繼續才問密碼——每次只問一件事
+        window.goToPasswordStep = function() {
+            const phone = document.getElementById('loginPhone').value.trim();
+            if (!phone) { showToast("請先輸入電話號碼", "error"); return; }
+            document.getElementById('loginStepPhone').classList.remove('active');
+            document.getElementById('loginStepPassword').classList.add('active');
+            document.getElementById('loginPassword').focus();
+        };
+        window.backToPhoneStep = function() {
+            document.getElementById('loginStepPassword').classList.remove('active');
+            document.getElementById('loginStepPhone').classList.add('active');
+        };
 
         const makeUserKey = (region, phone) => (region + phone).replace(/\+/g, '');
 
@@ -2127,10 +2155,9 @@
             deleteTicket, renderMyTickets, openMultipleTicketDetail
         });
 
-        // Enter 鍵登入
-        ['loginPhone', 'loginPassword'].forEach(id => {
-            document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
-        });
+        // Enter 鍵：電話欄位按 Enter 進入下一步，密碼欄位按 Enter 直接登入
+        document.getElementById('loginPhone').addEventListener('keydown', (e) => { if (e.key === 'Enter') window.goToPasswordStep(); });
+        document.getElementById('loginPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
 
         window.onload = function() {
             setupPwaManifest();
