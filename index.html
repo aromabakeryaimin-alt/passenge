@@ -20,14 +20,17 @@
         body { margin: 0; background: var(--bg); color: var(--text-main); padding-bottom: 80px; }
 
         .toast {
-            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 20px; left: 50%;
+            transform: translate(-50%, -100px) scale(.95); opacity: 0;
             background: #1e293b; color: white; padding: 12px 24px; border-radius: 30px;
             font-size: 14px; font-weight: 500; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            z-index: 9999; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;
+            z-index: 9999; transition: transform .3s cubic-bezier(.2,1.4,.4,1), opacity .3s ease;
+            display: flex; align-items: center; gap: 8px;
+            pointer-events: none; /* 提示訊息不應攔截畫面上的點擊/輸入 */
         }
-        .toast.show { top: 20px; }
+        .toast.show { transform: translate(-50%, 0) scale(1); opacity: 1; }
 
-        .header { background: var(--surface); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 10; }
+        .header { background: var(--surface); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
         .header .brand { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
         .header .logout-btn { color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
         .header .header-actions { display: flex; align-items: center; gap: 14px; }
@@ -38,9 +41,6 @@
         /* ===== 動畫 ===== */
         @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .view-anim { animation: viewIn .35s cubic-bezier(.2,.8,.3,1) both; }
-
-        @keyframes toastPop { 0% { transform: translate(-50%,-16px) scale(.9); opacity: 0; } 60% { transform: translate(-50%,4px) scale(1.03); opacity: 1; } 100% { transform: translate(-50%,0) scale(1); opacity: 1; } }
-        .toast.show { top: 20px; animation: toastPop .35s cubic-bezier(.2,1.4,.4,1) both; }
 
         button, .nav-item, select, input[type="checkbox"] { transition: transform .15s ease; }
         button:active { transform: scale(.96); }
@@ -129,7 +129,6 @@
             .receipt-no-print { display: none !important; }
         }
 
-        /* 中秋節限定：夜空 + 滿月背景，節慶結束後可把 background 改回單一淺色漸層 */
         /* ================= 登入頁：單一主色 + 大量留白（新設計方向） ================= */
         #viewAuth {
             min-height: 100vh;
@@ -149,10 +148,10 @@
 
         .field-min { margin-bottom: 26px; }
         .field-min label { display: block; font-size: 11px; color: var(--text-muted); letter-spacing: .6px; margin-bottom: 8px; }
-        .field-min .input-row { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid var(--border); padding-bottom: 10px; transition: border-color .2s; }
+        .field-min .input-row { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--border); padding-bottom: 10px; transition: border-color .2s; position: relative; }
         .field-min .input-row:focus-within { border-color: var(--primary); }
-        .field-min select { border: none; background: none; font-size: 16px; color: var(--text-main); font-weight: 600; padding-right: 4px; }
-        .field-min input { border: none; background: none; font-size: 21px; color: var(--text-main); flex: 1; outline: none; padding: 0; min-width: 0; }
+        .field-min select { flex: 0 0 64px; border: none; background: none; font-size: 16px; color: var(--text-main); font-weight: 600; padding: 4px 0; position: relative; z-index: 1; }
+        .field-min input { position: relative; z-index: 1; border: none; background: none; font-size: 21px; color: var(--text-main); flex: 1 1 auto; width: 100%; min-width: 0; outline: none; padding: 4px 0; -webkit-user-select: text; user-select: text; }
         .field-min input::placeholder { color: #C9C2AE; }
 
         .btn-min { width: 100%; padding: 17px; border: none; border-radius: 999px; font-size: 15px; font-weight: 700; letter-spacing: .3px; cursor: pointer; }
@@ -165,12 +164,12 @@
         .auth-switch { text-align: center; margin-top: 30px; font-size: 13px; color: var(--text-muted); }
         .auth-switch a { color: var(--primary); text-decoration: none; font-weight: 700; cursor: pointer; }
 
-        .hero-banner { background: linear-gradient(135deg, var(--primary) 0%, #8A5D18 100%); color: white; padding: 25px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(184, 132, 46, 0.25); position: relative; overflow: hidden; }
-        .hero-banner h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 700; }
-        .hero-banner p { margin: 0; font-size: 14px; opacity: 0.9; }
-        .hero-icon { position: absolute; right: -10px; bottom: -20px; font-size: 100px; opacity: 0.1; }
+        .hero-banner { background: var(--surface); color: var(--text-main); padding: 28px 25px; border-radius: 24px; margin-bottom: 25px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .hero-banner h2 { margin: 0 0 8px 0; font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+        .hero-banner p { margin: 0; font-size: 14px; color: var(--text-muted); }
+        .hero-icon { position: absolute; right: -6px; bottom: -16px; font-size: 90px; opacity: .07; color: var(--primary); }
 
-        .card { background: var(--surface); padding: 20px; border-radius: 22px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        .card { background: var(--surface); padding: 20px; border-radius: 22px; box-shadow: none; margin-bottom: 20px; border: 1px solid var(--border); }
         .card-title { margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; font-weight: 600; }
 
         .form-group { margin-bottom: 16px; width: 100%; }
@@ -368,12 +367,6 @@
 
     <!-- 視圖：首頁購票 -->
     <div class="container" id="viewHome" style="display: none;">
-        <!-- 中秋節限定祝賀橫幅，可自行按 × 關閉；活動結束後可整段刪除 -->
-        <div id="festiveBanner" style="background:linear-gradient(135deg,#3A2F5E,var(--night)); color:#FCEFCB; border-radius:18px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; box-shadow:0 6px 14px rgba(0,0,0,.12);">
-            <span style="font-size:26px;">🌕</span>
-            <span style="flex:1; font-size:13px; line-height:1.5;">瑞里智能購票系統祝您<strong>中秋節快樂</strong>，闔家團圓、出行順心！</span>
-            <button onclick="this.closest('#festiveBanner').style.display='none'" style="background:none; border:none; color:#FCEFCB; opacity:.7; font-size:16px; cursor:pointer;">✕</button>
-        </div>
         <div class="hero-banner">
             <i class="fas fa-route hero-icon"></i>
             <h2 id="welcomeText">歡迎乘搭</h2>
@@ -382,7 +375,7 @@
 
         <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; cursor:pointer;" onclick="window.switchView('wallet')">
             <div style="display:flex; align-items:center; gap:12px;">
-                <div style="width:42px; height:42px; border-radius:50%; background:var(--night); color:#F4D992; display:flex; align-items:center; justify-content:center; font-size:18px;"><i class="fas fa-wallet"></i></div>
+                <div style="width:42px; height:42px; border-radius:50%; background:var(--text-main); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:18px;"><i class="fas fa-wallet"></i></div>
                 <div>
                     <div style="font-size:12px; color:var(--text-muted);">銀包餘額</div>
                     <strong id="homeWalletBalance" style="font-size:18px; color:var(--text-main);">HK$ 0</strong>
@@ -518,10 +511,10 @@
 
     <!-- 視圖：銀包 -->
     <div class="container" id="viewWallet" style="display: none;">
-        <div class="hero-banner" style="background: linear-gradient(135deg, var(--night) 0%, #3A2F5E 100%); box-shadow: 0 10px 15px -3px rgba(27,42,74,.3);">
-            <i class="fas fa-wallet hero-icon"></i>
-            <p style="margin:0 0 4px 0; opacity:.85; font-size:13px;">銀包餘額</p>
-            <h2 id="walletBalanceText" style="font-size:34px;">HK$ 0</h2>
+        <div class="hero-banner" style="background: var(--text-main); border-color: var(--text-main);">
+            <i class="fas fa-wallet hero-icon" style="color: var(--primary); opacity: .15;"></i>
+            <p style="margin:0 0 4px 0; color: rgba(255,255,255,.7); font-size:13px;">銀包餘額</p>
+            <h2 id="walletBalanceText" style="font-size:34px; color: #fff;">HK$ 0</h2>
         </div>
 
         <div class="card" style="text-align:center;">
@@ -1689,7 +1682,7 @@
             }
         }
 
-        // 慶祝購票成功的彩紙動畫（金/紅/白三色呼應中秋節配色）
+        // 購票成功的彩紙慶祝動畫
         function celebrateConfetti() {
             const colors = ['#B8842E', '#B4483C', '#FCEFCB', '#F4D992'];
             for (let i = 0; i < 26; i++) {
