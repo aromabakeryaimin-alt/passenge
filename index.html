@@ -523,6 +523,7 @@
             <div class="qr-large" id="walletQrCode" style="margin:0 auto 14px;"></div>
             <div class="qr-bar" id="walletQrBarWrap"><i id="walletQrBar"></i></div>
             <div class="qr-hint"><i class="fas fa-sync-alt"></i> 二維碼每 10 分鐘自動更新一次</div>
+            <button class="btn-secondary" style="width:100%; margin-top:6px;" onclick="window.writeWalletNfc()"><i class="fas fa-wifi"></i> 寫入 NFC 卡（自備一張即可當自己的增值卡）</button>
         </div>
 
         <div class="card" style="text-align:center;">
@@ -589,6 +590,17 @@
                 <div class="si-left"><i class="fas fa-mobile-alt"></i><span data-i18n="settings_install">加到主畫面 (PWA)</span></div>
                 <button class="lang-pill" onclick="window.tryInstallPwa()"><span data-i18n="settings_install_btn">安裝</span></button>
             </div>
+        </div>
+
+        <div class="card" data-kw="nfc 拍卡 交通卡 支付卡 卡片">
+            <h2 class="card-title">NFC 拍卡卡片</h2>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">把一張可重複寫入的 NFC 貼紙／卡變成您的專屬拍卡卡片，日後上車直接拍卡即可，職員會即場輸入車費並從您的銀包扣款。</p>
+            <button class="btn-secondary" style="width:100%;" onclick="window.writeMemberCard()"><i class="fas fa-wifi"></i> 寫入我的拍卡卡片</button>
+            <div class="settings-item" style="margin-top:6px;" data-kw="停用 遺失 卡片">
+                <div class="si-left"><i class="fas fa-ban"></i><span>卡片遺失／停用拍卡功能</span></div>
+                <label class="switch"><input type="checkbox" id="cardRevokeToggle" onchange="window.toggleMemberCardRevoke(this.checked)"><span class="slider"></span></label>
+            </div>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">⚠️ 此卡片沒有加密晶片保護，內容一經寫入即固定不變，理論上可被複製冒用；如卡片遺失，請立即開啟上方停用開關。</p>
         </div>
 
         <div class="card" data-kw="語言 language 繁體 簡體 english 简体">
@@ -1330,7 +1342,7 @@
             if (view === 'tickets') renderMyTickets();
             if (view === 'profile') renderProfile();
             if (view === 'wallet') startWalletQrLoop();
-            if (view === 'settings') { initFaqChat(); refreshBiometricUi(); refreshNotifyToggleUi(); }
+            if (view === 'settings') { initFaqChat(); refreshBiometricUi(); refreshNotifyToggleUi(); refreshMemberCardUi(); }
             window.scrollTo(0, 0);
         }
 
@@ -1511,6 +1523,29 @@
                 drawWalletQr();
             }, 1000);
         }
+
+        // 把 NFC 貼紙變成「自己的增值卡」：寫入內容跟增值二維碼完全同一格式，
+        // 職員那邊只要用同一套驗證邏輯讀 NFC 就能認得出來，效期一樣是 10 分鐘。
+        // 老實說明白：這只在我們自己的系統內有效（我們自己寫、我們自己讀），
+        // 不能變成真正的八達通／銀行感應卡那種可以在任何讀卡機使用的卡，那需要專用安全晶片和發卡機構認證，
+        // 網頁完全沒有辦法做到，不是技術沒寫好，是瀏覽器規範本身就不開放這種權限。
+        window.writeWalletNfc = async function() {
+            if (!('NDEFReader' in window)) {
+                showToast("此裝置或瀏覽器不支援 NFC，目前僅支援 Android 手機的 Chrome 瀏覽器，並需要一張可重複寫入的 NFC 貼紙/卡", "error");
+                return;
+            }
+            try {
+                const secret = await ensureWalletSecret();
+                showToast("請將手機背面貼近 NFC 卡/貼紙並保持不動...", "info");
+                const w = Math.floor(Date.now() / 600000);
+                const text = `WALLET|${currentUser.userKey}|${w}|${await hmacHex(secret, `${currentUser.userKey}|${w}`)}`;
+                const ndef = new NDEFReader();
+                await ndef.write({ records: [{ recordType: "text", data: text }] });
+                showToast("已寫入 NFC 卡！10 分鐘內有效，之後請重新按一次以更新", "success");
+            } catch (e) {
+                showToast("寫入失敗，請確認已授權 NFC 權限、卡片可寫入，並貼緊卡片再試一次", "error");
+            }
+        };
 
 
         function applyScheduleFilter() {
@@ -2066,6 +2101,53 @@
                 showToast("寫入失敗，請確認已授權 NFC 權限、卡片可寫入，並貼緊卡片再試一次", "error");
             }
         };
+
+        // ---------- 永久會員拍卡卡片 ----------
+        // 注意：卡片內容永久不變、沒有加密晶片保護，理論上能被複製冒用——這是一般 NFC 貼紙的先天限制，
+        // 不是「假的」功能，是真的能寫入、真的能拍卡扣款，只是安全等級比不上有安全晶片的真正交通卡（如八達通）。
+        window.writeMemberCard = async function() {
+            if (!('NDEFReader' in window)) {
+                showToast("此裝置或瀏覽器不支援 NFC，目前僅支援 Android 手機的 Chrome 瀏覽器，並需要一張可重複寫入的 NFC 貼紙/卡", "error");
+                return;
+            }
+            if (!currentUser) return;
+            try {
+                const secret = await ensureWalletSecret();
+                showToast("請將手機背面貼近 NFC 卡/貼紙並保持不動...", "info");
+                const sig = await hmacHex(secret, `MEMBER|${currentUser.userKey}`);
+                const text = `MEMBER|${currentUser.userKey}|${sig}`;
+                const ndef = new NDEFReader();
+                await ndef.write({ records: [{ recordType: "text", data: text }] });
+                // 寫入成功後自動解除停用狀態（重新寫卡等同於重新啟用）
+                await update(ref(db, `users/${currentUser.userKey}`), { memberCardRevoked: false });
+                const toggle = document.getElementById('cardRevokeToggle');
+                if (toggle) toggle.checked = false;
+                showToast("已成功寫入拍卡卡片！上車時直接拍卡即可，職員會即場輸入車費扣款", "success");
+            } catch (e) {
+                showToast("寫入失敗，請確認已授權 NFC 權限、卡片可寫入，並貼緊卡片再試一次", "error");
+            }
+        };
+
+        window.toggleMemberCardRevoke = async function(revoked) {
+            if (!currentUser) return;
+            try {
+                await update(ref(db, `users/${currentUser.userKey}`), { memberCardRevoked: revoked });
+                showToast(revoked ? "已停用拍卡卡片，若有職員嘗試拍卡收費將會被拒絕" : "已重新啟用拍卡卡片", "success");
+            } catch (e) {
+                showToast("設定失敗，請檢查網絡", "error");
+                const toggle = document.getElementById('cardRevokeToggle');
+                if (toggle) toggle.checked = !revoked;
+            }
+        };
+
+        async function refreshMemberCardUi() {
+            const toggle = document.getElementById('cardRevokeToggle');
+            if (!toggle || !currentUser) return;
+            try {
+                const snap = await get(child(ref(db), `users/${currentUser.userKey}/memberCardRevoked`));
+                toggle.checked = !!snap.val();
+            } catch (e) {}
+        }
 
         function renderTimeline(id) {
             const d = ticketState[id], el = document.getElementById(`tdTime-${id}`);
